@@ -1,0 +1,26 @@
+# Segredos — nunca versionar. O .env.example é a exceção declarada.
+.env
+!.env.example
+
+# Ambiente
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Ferramentas
+.pytest_cache/
+.ruff_cache/
+
+# Execução
+logs/
+*.log
+
+# O checkpoint da SINC-006. É de INSTALAÇÃO, não de código: perdê-lo custa
+# uma rodada completa, que é degradação segura.
+estado-sinc.db
+
+# Sistema
+.DS_Store
+Thumbs.db

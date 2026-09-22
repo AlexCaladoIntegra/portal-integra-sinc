@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Sincronizar · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h2 class="page-title">Sincronizar dados</h2>
+            <p class="page-subtitle">
+                Ler o Domínio e gravar no Portal Integra
+            </p>
+        </div>
+    </div>
+
+    {# O HTML é só a casca. Diagnóstico, cards e histórico são montados pelo
+       sincronizacao.js a partir da API — acrescentar um importador ao REGISTRO
+       o faz aparecer aqui sem tocar neste arquivo. #}
+    <div class="admin-card">
+        <div class="page-header">
+            <div>
+                <h3 class="page-title">Diagnóstico</h3>
+                <p class="page-subtitle">
+                    As duas pontas que a sincronização liga, e o schema do destino
+                </p>
+            </div>
+        </div>
+
+        <div id="sincDiagnostico">
+            <p class="import-ultima">Verificando as conexões…</p>
+        </div>
+
+        {# O recorte por empresa. Vazio = o parque inteiro, que é o default e o
+           que a rodada agendada faz. O `select` continua sendo a verdade; o
+           `select_busca.js` o decora com um campo de busca, porque o rótulo é
+           "272 - BOB'S" e a digitação nativa casa só o começo — numa lista de
+           589 empresas, digitar "BOB" não acharia nada. #}
+        <div class="import-selecao" style="margin-top:14px">
+            <label class="usuario-block-label" for="selEmpresa">Recortar por empresa</label>
+            <select id="selEmpresa" class="form-input"
+                    data-busca="Todas as empresas — digite para recortar…">
+                <option value="">Todas as empresas</option>
+            </select>
+            <p class="page-subtitle" id="selEmpresaAjuda">Carregando empresas…</p>
+        </div>
+
+        <div class="import-acoes">
+            {# Nasce desabilitado e só o diagnóstico o libera: sem as duas
+               conexões de pé, clicar aqui produziria uma fila de erros no
+               histórico e nenhuma informação nova. #}
+            <button class="btn-primary btn-primary--accent" id="btnSincronizarTudo" disabled
+                    title="Verificando as conexões…">
+                <span class="material-symbols-outlined">sync</span>
+                <span id="btnSincronizarTudoRotulo">Sincronizar tudo</span>
+            </button>
+        </div>
+        <div class="import-resultado" id="tudoResultado" hidden></div>
+    </div>
+
+    <div class="page-header" style="margin-top:28px">
+        <div>
+            <h3 class="page-title">Conjuntos de dados</h3>
+            <p class="page-subtitle">Cada um pode ser sincronizado sozinho</p>
+        </div>
+    </div>
+
+    <div id="sincLista">
+        <div class="admin-card"><p class="import-ultima">Carregando…</p></div>
+    </div>
+
+    <div class="page-header" style="margin-top:28px">
+        <div>
+            <h3 class="page-title">Histórico</h3>
+            <p class="page-subtitle">
+                Últimas execuções — as desta máquina e as disparadas no painel do Portal
+            </p>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Quando</th>
+                    <th>Dados</th>
+                    <th>Origem</th>
+                    <th>Por</th>
+                    <th>Resultado</th>
+                    <th>Situação</th>
+                </tr>
+            </thead>
+            <tbody id="tbody-historico">
+                <tr class="table-empty"><td colspan="6">Carregando…</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {# portal.js SEMPRE primeiro: sincronizacao.js usa window.Portal no corpo
+       do IIFE, e a ordem inversa o deixa indefinido — a tela quebra no
+       navegador com a suíte verde. Há teste estático desta ordem. #}
+    <script nonce="{{ csp_nonce }}"
+            src="{{ url_for('static', filename='js/portal.js') }}"></script>
+    {# Antes do da tela: o `sincronizacao.js` chama `SelectBusca.ligarTodos()`
+       depois de preencher o lookup, e precisa que ele já exista. #}
+    <script nonce="{{ csp_nonce }}"
+            src="{{ url_for('static', filename='js/select_busca.js') }}"></script>
+    <script nonce="{{ csp_nonce }}"
+            src="{{ url_for('static', filename='js/sincronizacao.js') }}"></script>
+{% endblock %}

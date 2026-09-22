@@ -1,0 +1,72 @@
+/* ============================================================================
+   tokens.css — Design tokens do portal.
+   Carregar SEMPRE antes de style.css e dos CSS de feature.
+   Regra: nenhum literal de cor novo nos demais arquivos — usar var(--token).
+   ============================================================================ */
+
+:root {
+    /* ── Superfícies (dark) ── */
+    --app-bg:       #08090b;   /* fundo da página, quase preto */
+    --chrome-bg:    #0a0b0e;   /* topbar + sidebar */
+    --card:         #101216;   /* superfície primária de card */
+    --panel-inset:  #15181d;   /* item/linha aninhada dentro de card */
+    --track:        #1c1f25;   /* trilho de meter/progress */
+    --border:       rgba(255, 255, 255, 0.06);  /* borda de card */
+    --border-chrome:rgba(255, 255, 255, 0.07);  /* borda em topbar/sidebar */
+    --divider:      rgba(255, 255, 255, 0.05);  /* separador de linha/tabela */
+
+    /* ── Texto ── */
+    --text:         #eef1f5;   /* títulos */
+    --text-strong:  #e6e9ee;   /* corpo enfatizado / números em tabela */
+    --text-body:    #cdd2da;   /* corpo padrão */
+    --text-dim:     #b8bdc6;   /* texto secundário de célula */
+    --text-muted:   #8b909a;   /* legendas, subtítulos */
+    --label:        #6b7280;   /* micro-labels em CAIXA ALTA */
+
+    /* ── Paleta funcional (status / risco) — cor SEMPRE com label textual ── */
+    --crit:    #fb4d63;   /* vermelho — vencido, crítico, erro, risco */
+    --alta:    #f97316;   /* laranja — urgente */
+    --media:   #f5b73d;   /* âmbar — atenção */
+    --baixa:   #4d8df6;   /* azul — programado, em andamento, info */
+    --regular: #16c784;   /* verde — regular, concluído, saudável */
+    --especial:#a855f7;   /* roxo — experiência / status especial */
+    --inativo: #6b7280;   /* cinza — sem dados, pendente neutro */
+    --financ:  #e0a93b;   /* ouro — custo, totais, acento de marca */
+    --teal:    #22d3ee;   /* teal — métrica de apoio */
+
+    /* Texto sobre chips de fill sólido: âmbar/verde/teal/cinza usam texto escuro */
+    --on-color-dark:  #0c0d10;
+    --on-color-light: #ffffff;
+
+    /* ── Ouro de marca / estado ativo (chips, filtros, nav) ── */
+    --active-bg:     rgba(212, 162, 58, 0.13);
+    --active-bg-soft:rgba(212, 162, 58, 0.12);
+    --active-text:   #e6b450;
+    --active-accent: #d4a23a;   /* border-left / underline ativo */
+    --active-border: rgba(212, 162, 58, 0.45);
+
+    /* ── Wordmark ── */
+    --brand-porta: #9aa0ab;
+    --brand-nome:    #ffffff;
+
+    /* ── Tipografia ── */
+    --font-sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+
+    /* ── Geometria ── */
+    --radius-card:      14px;
+    --radius-card-exec: 16px;
+    --radius-chip:      6px;
+    --radius-btn:       8px;
+    --radius-pill:      20px;
+
+    /* ── Layout shell ── */
+    --topbar-h:        60px;
+    --sidebar-w:       236px;
+    --sidebar-w-min:   62px;
+    --main-max:        1680px;
+    --page-pad-y:      28px;
+    --page-pad-x:      34px;
+
+    /* offset reutilizado pelo app-shell (topbar + 1px de borda) */
+    --app-shell-offset: calc(var(--topbar-h) + 1px);
+}

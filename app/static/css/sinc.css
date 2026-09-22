@@ -1,0 +1,34 @@
+/* ============================================================================
+   sinc.css — o ÚNICO CSS deste projeto. Carregar por último.
+
+   Os outros seis arquivos de app/static/css/ são cópia literal do Portal
+   Integra e não devem ser editados: divergir deles é perder a atualização
+   quando a identidade visual do Portal mudar. O que este projeto precisa de
+   diferente mora aqui.
+
+   Regra herdada do Portal, e que vale igual: nenhum literal de cor novo —
+   só var(--token) de tokens.css. E toda regra precisa do par `body.light`
+   escrito à mão, porque o tema claro do Portal não redefine os tokens,
+   sobrescreve regra a regra.
+   ============================================================================ */
+
+/* ── O rodapé que não existe ─────────────────────────────────────────────────
+   mobile.css reserva 64px no pé do shell para a bottom nav do Portal. Esta
+   aplicação não tem bottom nav (é ferramenta de operador, numa máquina, com
+   uma tela só), então a reserva vira faixa morta ao estreitar a janela. */
+@media (max-width: 760px) {
+  .app-shell { padding-bottom: var(--page-pad-y); }
+}
+
+/* ── O chip de destino no lugar do chip de usuário ───────────────────────────
+   Reusa .user-chip do style.css, mas não é botão: não abre menu nenhum, é
+   só informação. Sem o cursor e o hover de clicável, que prometeriam ação. */
+.navbar-actions .user-chip {
+  cursor: default;
+}
+.navbar-actions .user-chip:hover {
+  background: none;
+}
+.navbar-actions .user-chip .material-symbols-outlined {
+  font-size: 18px;
+}

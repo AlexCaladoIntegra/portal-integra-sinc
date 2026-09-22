@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {# Lido por portal.js, que manda o valor em X-CSRFToken. Vem VAZIO: esta
+       aplicação não tem Flask-WTF, e portanto não há token a emitir. O
+       cabeçalho sai assim mesmo e é ignorado pelo servidor — é inofensivo, e
+       manter a meta evita tocar no portal.js, que é cópia literal do Portal. #}
+    <meta name="csrf-token" content="">
+    <title>{% block title %}{{ app_name }}{% endblock %}</title>
+    {# Mesma marca do cabeçalho, de propósito: dois arquivos divergiriam no dia
+       em que a marca mudasse, e o que ninguém olha é o da aba. PNG e não .ico
+       porque o arquivo é RGBA e se lê tanto na aba clara quanto na escura. #}
+    <link rel="icon" type="image/png"
+          href="{{ url_for('static', filename='img/integra-mark.png') }}">
+    <link rel="apple-touch-icon"
+          href="{{ url_for('static', filename='img/integra-mark.png') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    {# A MESMA linha do Portal, com as quatro famílias. IBM Plex Sans é o
+       --font-sans; Outfit é a família literal de .page-title, .admin-table e
+       .btn-primary (ver formularios.css). Montserrat e Quicksand só têm
+       classes utilitárias em style.css — ficam porque o CSS é cópia, e
+       removê-las daqui deixaria duas classes apontando para fonte ausente. #}
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Outfit:wght@100..900&family=Quicksand:wght@300..700&display=swap"
+          rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    {# tokens.css sempre primeiro: os demais arquivos só usam var(--token). #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/formularios.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+    {# No Portal estes dois são carregados por página, no {% block head %} de
+       quem os usa. Aqui vêm no base porque a aplicação tem UMA tela e ela usa
+       os dois — e porque `sinc.css` precisa ser o último de verdade: deixá-los
+       no bloco os punha DEPOIS dele, e uma folha de override que não é a
+       última só funciona por acidente de especificidade. #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/importacao.css') }}">
+    {# Por último: só este arquivo é deste projeto, e ele ajusta o que o CSS
+       copiado pressupõe do Portal. #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sinc.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="navbar-brand">
+                <a href="{{ url_for('main.inicio') }}" class="brand-link">
+                    <img src="{{ url_for('static', filename='img/integra-mark.png') }}"
+                         alt="Integra" class="brand-mark">
+                    <span class="brand-wordmark">
+                        <span class="brand-title"><span class="title-portal">Portal</span>
+                            <span class="title-integra">Integra</span></span>
+                        <span class="brand-sub">Sincronização de dados</span>
+                    </span>
+                </a>
+            </div>
+
+            {# No lugar do chip de usuário do Portal, o DESTINO. Este processo
+               escreve num banco de produção, e a pergunta que ele tem de
+               responder o tempo todo é "em qual?". Sem isso, apontar o .env
+               para o banco errado é indistinguível de apontar para o certo até
+               alguém conferir os números — que é tarde. #}
+            <div class="navbar-actions">
+                <span class="user-chip" title="Banco de destino da sincronização">
+                    <span class="user-chip-av">
+                        <span class="material-symbols-outlined">database</span>
+                    </span>
+                    <span class="user-chip-meta">
+                        <span class="user-chip-name">{{ destino.banco }}</span>
+                        <span class="user-chip-role">{{ destino.servidor }}</span>
+                    </span>
+                </span>
+            </div>
+        </nav>
+    </header>
+
+    {# A sidebar é sempre visível: aqui não há tela sem ela, nem permissão que
+       esconda item. O `active_nav` continua marcando o item corrente, como no
+       Portal. #}
+    <div class="app-shell">
+        <aside class="app-sidebar" id="appSidebar">
+            <button class="sidebar-toggle" id="appSidebarToggle" title="Expandir/recolher menu">
+                <span class="material-symbols-outlined">menu_open</span>
+                <span>Menu</span>
+            </button>
+
+            <div class="sidebar-section" data-section="sinc">
+                <button type="button" class="sidebar-section-toggle" aria-expanded="true"
+                        aria-controls="sidebarSecSinc">
+                    <span class="sidebar-group-label">Sincronização</span>
+                    <span class="material-symbols-outlined sidebar-section-caret">expand_more</span>
+                </button>
+                <div class="sidebar-section-items" id="sidebarSecSinc">
+                    <a href="{{ url_for('main.inicio') }}"
+                       class="sidebar-btn {% if active_nav == 'inicio' %}active{% endif %}">
+                        <span class="material-symbols-outlined">cloud_download</span>
+                        <span>Sincronizar</span>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <div class="app-shell-content">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Loader global (modal de carregamento) -->
+    <div class="app-loader-overlay" id="appLoader" hidden role="alert" aria-busy="true"
+         aria-live="polite">
+      <div class="app-loader-card">
+        <div class="app-loader-inner">
+          <div class="app-loader-logo">
+            <svg viewBox="0 0 1000 890.3" width="104" aria-hidden="true">
+              <path class="navy" d="M 117.1 167.7 L 156.6 167.7 L 203.5 181.3 L 399.5 324.3 L 399.5 328.0 L 159.1 490.8 L 164.0 710.2 L 448.8 494.5 L 566.0 578.0 Q 596.8 599.3 566.0 621.0 L 196.1 887.8 L 100.0 889.0 Q 18.5 889.0 18.5 760.0 L 19.7 304.6 L 30.8 249.1 L 49.3 212.1 L 76.4 183.7 L 94.9 173.9 L 115.9 168.9 Z" fill="#2E5C8A" stroke="#2E5C8A" stroke-width="4" stroke-linejoin="round"/>
+              <path class="gold" d="M 857.0 19.7 L 891.5 19.7 L 916.2 27.1 L 934.6 38.2 L 951.9 55.5 L 967.9 83.8 L 980.3 134.4 L 980.3 614.1 L 967.9 674.5 L 951.9 709.0 L 939.6 725.0 L 911.2 747.2 L 880.4 757.1 L 845.9 757.1 L 812.6 749.7 L 790.4 739.8 L 598.0 599.3 L 838.5 435.3 L 838.5 254.0 L 834.8 213.3 L 551.2 430.3 L 400.7 325.5 L 792.8 43.2 L 826.1 27.1 L 855.7 21.0 Z" fill="#C79A3E" stroke="#C79A3E" stroke-width="4" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="app-loader-texts">
+            <div class="app-loader-title">Carregando dados</div>
+            <div class="app-loader-subtitle" id="appLoaderSubtitle">Estamos carregando as informações.</div>
+          </div>
+          <div class="app-loader-progress-wrap">
+            <div class="app-loader-track"><div class="app-loader-bar"></div></div>
+            <div class="app-loader-hint">Integra Controladoria</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script nonce="{{ csp_nonce }}">
+        {# API global do loader — window.appLoader.show(msg) / .hide() #}
+        window.appLoader = (function () {
+            var el = document.getElementById('appLoader');
+            var sub = document.getElementById('appLoaderSubtitle');
+            var mensagemPadrao = sub ? sub.textContent : '';
+            return {
+                show: function (msg) {
+                    if (!el) return;
+                    if (sub) sub.textContent = msg || mensagemPadrao;
+                    el.hidden = false;
+                    document.body.style.overflow = 'hidden';
+                },
+                hide: function () {
+                    if (!el) return;
+                    el.hidden = true;
+                    document.body.style.overflow = '';
+                }
+            };
+        })();
+
+        {# Só esconde ao restaurar do bfcache (voltar/avançar). Em carga normal,
+           quem controla o loader é a própria tela. #}
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted && window.appLoader) window.appLoader.hide();
+        });
+    </script>
+
+    <script nonce="{{ csp_nonce }}">
+        {# Tema salvo pelo usuário; sem escolha registrada, vale o escuro. #}
+        document.body.classList.toggle('light', localStorage.getItem('theme') === 'light');
+
+        {# Sidebar recolhida/expandida, lembrada entre visitas #}
+        (function () {
+            const sidebar = document.getElementById('appSidebar');
+            const btn = document.getElementById('appSidebarToggle');
+            if (!sidebar || !btn) return;
+
+            const icone = btn.querySelector('.material-symbols-outlined');
+            function aplicar(recolhida) {
+                sidebar.classList.toggle('sidebar--collapsed', recolhida);
+                icone.textContent = recolhida ? 'menu' : 'menu_open';
+                localStorage.setItem('mainSidebarCollapsed', recolhida ? '1' : '0');
+            }
+
+            aplicar(localStorage.getItem('mainSidebarCollapsed') === '1');
+            btn.addEventListener('click', function () {
+                aplicar(!sidebar.classList.contains('sidebar--collapsed'));
+            });
+        }());
+
+        {# Grupos da sidebar: estado de cada um no localStorage #}
+        (function () {
+            const CHAVE = 'mainSidebarSections';
+            let estado = {};
+            try { estado = JSON.parse(localStorage.getItem(CHAVE)) || {}; } catch (e) { estado = {}; }
+
+            document.querySelectorAll('.app-sidebar .sidebar-section').forEach(function (secao) {
+                const chave = secao.dataset.section;
+                const toggle = secao.querySelector('.sidebar-section-toggle');
+                if (!chave || !toggle) return;
+
+                function aplicar(aberta) {
+                    toggle.setAttribute('aria-expanded', aberta ? 'true' : 'false');
+                    estado[chave] = aberta;
+                    try { localStorage.setItem(CHAVE, JSON.stringify(estado)); } catch (e) { {# ignora #} }
+                }
+
+                aplicar(estado[chave] !== false);
+                toggle.addEventListener('click', function () {
+                    aplicar(toggle.getAttribute('aria-expanded') !== 'true');
+                });
+            });
+        }());
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

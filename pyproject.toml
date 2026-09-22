@@ -1,0 +1,65 @@
+[project]
+name = "portal-integra-sinc"
+version = "0.1.0"
+description = "Sincronizador do Domínio para o Portal Integra"
+requires-python = ">=3.13"
+
+# As dependências ficam em requirements.txt / requirements-dev.txt (pip),
+# não em [project.dependencies]. Este processo é instalado num venv na
+# máquina do cliente, não empacotado.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ruff — lint e formatação. Mesma configuração do portal-integra, de propósito:
+# boa parte do código deste projeto é cópia de lá, e uma regra diferente aqui
+# faria o `ruff format` reescrever arquivos que devem permanecer idênticos.
+# ─────────────────────────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort (ordem dos imports)
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "C4",   # comprehensions
+    "SIM",  # simplificações
+    "ARG",  # argumento não usado
+    "RET",  # returns
+    "TID",  # imports tidy
+]
+ignore = [
+    "B008",    # chamada de função em default: padrão comum em Flask
+    "RET504",  # variável antes do return costuma documentar a intenção
+    # Import relativo dentro de app/ é a convenção do projeto (`from ..shared
+    # import ...`): deixa explícito o que é interno ao pacote da aplicação.
+    "TID252",
+    # O vocabulário de erro é em português, com prefixo Erro (ErroValidacao),
+    # em vez do sufixo Error do inglês.
+    "N818",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Testes podem ter asserts longos e fixtures com nome sombreando módulo.
+# ARG001/ARG002/ARG005: um dublê precisa aceitar a assinatura real do que
+# substitui, mesmo sem usar todos os parâmetros.
+"tests/*" = ["ARG001", "ARG002", "ARG005", "N802"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pytest
+# ─────────────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-q --strict-markers"
+filterwarnings = ["error::DeprecationWarning:app.*"]

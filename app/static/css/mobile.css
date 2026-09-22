@@ -1,0 +1,400 @@
+/* ============================================================================
+   mobile.css — Camada responsiva mobile do Portal Integra
+   Carregar por ÚLTIMO (depois de tokens/style/components). Somente media
+   queries e componentes exclusivos do mobile (bottom nav / bottom sheets);
+   nenhuma regra aqui altera o comportamento desktop.
+   ============================================================================ */
+
+/* ── Componentes exclusivos do mobile: invisíveis no desktop ── */
+.mob-nav,
+.mob-backdrop,
+.mob-sheet,
+.settings-user { display: none; }
+
+@media (max-width: 760px) {
+
+  /* ════════════════════════════════════════════════════════════════════
+     1. Tokens do shell — reduz o respiro de página em telas pequenas
+     ════════════════════════════════════════════════════════════════════ */
+  :root {
+    --page-pad-y: 16px;
+    --page-pad-x: 14px;
+    --topbar-h:   56px;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════
+     2. Topbar compacta (mockup: 56px, marca reduzida, chips menores)
+     ════════════════════════════════════════════════════════════════════ */
+  .navbar { padding: 0 12px; gap: 8px; }
+  .brand-mark { height: 26px; }
+  .brand-title { font-size: 15px; }
+  .navbar-brand { min-width: 0; }
+  .navbar-actions { min-width: 0; gap: 2px; }
+  .emp-selector { margin-left: 6px; }
+  .emp-selector-btn { max-width: 46vw; padding: 0 8px; font-size: 11.5px; }
+  .emp-selector-label { max-width: 30vw; }
+  .user-chip { padding: 0 2px; gap: 4px; }
+  .user-chip-caret { display: none; }
+
+  /* ════════════════════════════════════════════════════════════════════
+     3. Shell: sem sidebar; conteúdo ganha folga para a bottom nav
+     ════════════════════════════════════════════════════════════════════ */
+  .app-shell { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+
+  /* ════════════════════════════════════════════════════════════════════
+     4. Bottom tab bar (mockup: Gestor · Hoje · Colab. · Férias · Mais)
+     ════════════════════════════════════════════════════════════════════ */
+  .mob-nav {
+    display: flex;
+    align-items: stretch;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 96;
+    background: var(--chrome-bg);
+    border-top: 1px solid var(--border-chrome);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+  }
+  .mob-nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 7px 2px 5px;
+    background: transparent;
+    border: none;
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .01em;
+    color: var(--text-muted);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  /* O ITEM TEM DE PODER ENCOLHER, e sem isto ele não pode.
+
+     `flex: 1` com o `min-width: auto` que o flexbox dá por default trava cada
+     botão na largura do CONTEÚDO, e o rótulo mais longo da barra ("Balancete")
+     fixa esse piso em 64px. Sete botões pedem 448px, e a barra é `position:
+     fixed; left: 0; right: 0` — o que passa da tela é simplesmente CORTADO, sem
+     rolagem e sem nada acusando. O item cortado é o ÚLTIMO, que é sempre o mais
+     novo.
+
+     Medido em 14/09/2026, em Chrome, sobre esta folha:
+
+       largura   6 itens          7 itens
+       320px     transborda       transborda
+       360px     transborda       transborda
+       390px     transborda       transborda
+       414px     cabe             transborda
+       480px     cabe             cabe
+
+     Ou seja: a barra já transbordava em três das quatro larguras de celular
+     mais comuns ANTES de o BI Fiscal entrar — o sétimo item só levou o
+     problema para o 414px. Com `min-width: 0` e reticências, sete itens cabem
+     de 360px para cima e o pior caso (320px) trunca o rótulo em vez de sumir
+     com o botão. Truncar é perda de detalhe; cortar é perda de navegação.
+
+     A TELA DE ENTRADAS (FIS-003) TROUXE O OITAVO, e a régua foi refeita — com
+     `min-width: 0` nada mais transborda em largura nenhuma, então o que se mede
+     agora é o TAMANHO DO ALVO DE TOQUE e quantos rótulos truncam:
+
+       itens    320px          360px          390px          414px
+       8        39px · 2       44px · 1       47px · 1       50px · 0
+       9        34px · 3       39px · 2       42px · 2       45px · 1
+       10       31px · 5       35px · 4       38px · 4       40px · 3
+
+     (largura do menor botão · quantos rótulos truncam)
+
+     Oito cabe: o piso de 44px — o alvo de toque recomendado — só é perdido no
+     320px, que é o iPhone SE. **Dez não cabe**: com as telas de Saídas e
+     Impostos do épico, NENHUMA largura mantém 44px e metade dos rótulos some
+     em reticências.
+
+     A FIS-005 FEZ O BOTÃO "MAIS", e a barra passou a ter QUATRO slots fixos —
+     Início, BI, Fiscal e Mais. Medido na mesma folha, em Chrome, forçando a
+     largura do `<nav>`:
+
+       largura   menor botão   rótulos truncados
+       320px     77px          0
+       360px     87px          0
+       390px     95px          0
+       414px     101px         0
+
+     Contra 31px e cinco rótulos truncados com dez itens. O alvo de toque sobra
+     em toda largura, e nenhum rótulo trunca — porque os quatro que sobraram são
+     curtos, e os longos ("Balancete", "Início do Fiscal") foram para a folha,
+     que tem a largura da tela.
+
+     A BARRA NÃO CRESCE MAIS, e é regra e não estilo: a tela nova entra na folha,
+     que rola. Há guarda estática sobre o número de slots — acrescentar um item
+     aqui é uma linha, não quebra nada, e o que ele estraga só aparece num
+     aparelho de verdade, que a suíte não tem. Foi assim que a barra chegou a
+     dez. */
+  .mob-nav-btn { min-width: 0; }
+  .mob-nav-btn > span:last-child {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mob-nav-btn .material-symbols-outlined { font-size: 23px; }
+  .mob-nav-btn.active { color: var(--financ); font-weight: 700; }
+  body.light .mob-nav { background: rgba(255,255,255,.96); border-top-color: rgba(0,0,0,.08); }
+  body.light .mob-nav-btn { color: #8a8a93; }
+  body.light .mob-nav-btn.active { color: #8a6420; }
+
+  /* ════════════════════════════════════════════════════════════════════
+     5. Backdrop + sheet "Mais" (todas as telas)
+     ════════════════════════════════════════════════════════════════════ */
+  .mob-backdrop:not([hidden]) {
+    display: block;
+    position: fixed; inset: 0;
+    background: rgba(4,5,7,.62);
+    z-index: 1050;
+    animation: mobFade .15s ease;
+  }
+  .mob-sheet:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 1100;
+    max-height: 82vh;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -20px 50px rgba(0,0,0,.5);
+    animation: mobSheetUp .22s cubic-bezier(.2,.8,.2,1);
+  }
+  .mob-sheet-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .mob-sheet-title { font-size: 15px; font-weight: 700; color: var(--text); }
+  .mob-sheet-close {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-body);
+    font-size: 16px; line-height: 1;
+    cursor: pointer;
+  }
+  .mob-sheet-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 14px calc(18px + env(safe-area-inset-bottom));
+  }
+  .mob-sheet-section-label {
+    font-size: 10.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--label);
+    padding: 10px 6px 8px;
+  }
+  .mob-sheet-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+    margin-bottom: 6px;
+  }
+  .mob-sheet-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px;
+    border-radius: 11px;
+    border: 1px solid var(--border);
+    background: var(--panel-inset);
+    font-family: var(--font-sans);
+    font-size: 12.5px; font-weight: 600;
+    color: var(--text);
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .mob-sheet-item .material-symbols-outlined { font-size: 20px; color: var(--financ); flex-shrink: 0; }
+  .mob-sheet-item.active { background: var(--active-bg); border-color: var(--active-border); }
+  body.light .mob-sheet:not([hidden]) { background: #fff; border-top-color: rgba(0,0,0,.1); box-shadow: 0 -20px 50px rgba(0,0,0,.2); }
+  body.light .mob-sheet-item { background: rgba(0,0,0,.03); border-color: rgba(0,0,0,.08); color: #212121; }
+  body.light .mob-sheet-item .material-symbols-outlined { color: #8a6420; }
+  body.light .mob-sheet-item.active { background: rgba(195,154,75,.12); border-color: rgba(195,154,75,.35); }
+
+  @keyframes mobSheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  @keyframes mobFade    { from { opacity: 0; } to { opacity: 1; } }
+
+  /* ════════════════════════════════════════════════════════════════════
+     6. Filtro global (empresas/competência) → bottom sheet
+        (o dropdown ancorado no botão vira folha fixa no rodapé)
+     ════════════════════════════════════════════════════════════════════ */
+  .emp-selector-drop,
+  .emp-selector-drop--filtros {
+    position: fixed;
+    top: auto; left: 0; right: 0; bottom: 0;
+    width: auto; max-width: none;
+    max-height: 82vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 18px 18px 0 0;
+    border-bottom: none;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    box-shadow: 0 -20px 50px rgba(0,0,0,.5);
+    animation: mobSheetUp .22s cubic-bezier(.2,.8,.2,1);
+  }
+  .gf-grid { flex-direction: column; }
+  .gf-col--view, .gf-col--comp { width: auto; border-left: none; padding-left: 0; }
+  .gf-col--comp { border-top: 1px solid var(--border); padding-top: 14px; }
+  .gf-emp-list { max-height: 34vh; }
+  .gf-emp-item { padding: 10px 10px; font-size: 13px; }
+  .gf-tab-btn { height: 38px; font-size: 12.5px; }
+  .gf-actions { flex-direction: row; gap: 10px; }
+  .gf-actions .gf-apply { flex: 2; height: 42px; font-size: 13px; }
+  .gf-actions .gf-reset { flex: 1; height: 42px; font-size: 13px; }
+
+  /* Escurece o conteúdo atrás do filtro/menu abertos (abaixo do header,
+     que tem z-index 100 e contém as próprias folhas). */
+  body:has(.emp-selector.open)::before,
+  body:has(.settings-card.open)::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: rgba(4,5,7,.62);
+    z-index: 99;
+    animation: mobFade .15s ease;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════
+     7. Menu do usuário → bottom sheet (mockup: cabeçalho com avatar)
+     ════════════════════════════════════════════════════════════════════ */
+  .settings-card {
+    position: fixed;
+    top: auto; left: 0; right: 0; bottom: 0;
+    width: auto;
+    border-radius: 18px 18px 0 0;
+    border-bottom: none;
+    padding: 10px 10px calc(14px + env(safe-area-inset-bottom));
+    box-shadow: 0 -20px 50px rgba(0,0,0,.5);
+    animation: mobSheetUp .22s cubic-bezier(.2,.8,.2,1);
+  }
+  .settings-card::before { display: none; }
+  .settings-item { padding: 12px; font-size: 13.5px; border-radius: 10px; }
+  .settings-item .material-symbols-outlined { font-size: 20px; }
+  .settings-user {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 12px 14px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-user-av {
+    width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700;
+    color: var(--on-color-dark); background: var(--active-text);
+  }
+  .settings-user-meta { display: flex; flex-direction: column; min-width: 0; }
+  .settings-user-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .settings-user-role { font-size: 11.5px; color: var(--text-muted); }
+  body.light .settings-user { border-bottom-color: rgba(0,0,0,.08); }
+  body.light .settings-user-name { color: #212121; }
+
+  /* ════════════════════════════════════════════════════════════════════
+     8. Componentes genéricos (components.css) no mobile
+     ════════════════════════════════════════════════════════════════════ */
+  /* KPIs em grade 2×2 (mockup) em vez de linha flexível */
+  .kpi-row { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+  /* O bloco de UM card só (BIC-008: cada KPI e cada fluxo viraram um bloco do
+     painel, para se ocultarem sozinhos). Sem esta linha, o card sozinho sai com
+     METADE da largura do bloco e a outra metade fica vazia. */
+  .kpi-row--solo { grid-template-columns: 1fr; }
+  .kpi-card { min-width: 0; padding: 14px 15px; }
+  .kpi-card__num { font-size: 30px; }
+  .kpi-card__cap { font-size: 12px; }
+  .kpi-card--exec { padding: 15px 16px; }
+  .kpi-card--exec .kpi-card__num { font-size: 34px; }
+
+  .page-title { font-size: 21px; }
+  .page-header { flex-wrap: wrap; }
+
+  /* Linha de filter-chips vira trilho horizontal (mockup: tabs roláveis) */
+  .filter-chip-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .filter-chip-row::-webkit-scrollbar { display: none; }
+  .filter-chip { flex: none; white-space: nowrap; }
+
+  /* Tabelas densas soltas (sem scrollbox próprio) ganham rolagem horizontal */
+  .data-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Loader global */
+  .app-loader-card { padding: 32px 24px 28px; }
+
+  /* ════════════════════════════════════════════════════════════════════
+     9. Cabeçalhos de página (padrão .*-h-t | .*-h-st das telas)
+        Mockup: título 21px, subtítulo 15–16px
+     ════════════════════════════════════════════════════════════════════ */
+  .hoje-h-t, .fer-h-t, .ctr-h-t, .adv-h-t, .ap-h-t, .fp-h-t,
+  .aniv-h-t, .gc-h-t, .folha-h-t { font-size: 21px; }
+  .hoje-h-st, .fer-h-st, .ctr-h-st, .adv-h-st, .ap-h-st, .fp-h-st,
+  .aniv-h-st, .gc-h-st, .folha-h-st { font-size: 15px; }
+  .hoje-h-bar, .fer-h-bar, .ctr-h-bar, .adv-h-bar, .ap-h-bar, .fp-h-bar,
+  .aniv-h-bar, .gc-h-bar, .folha-h-bar { font-size: 19px; }
+
+  /* ════════════════════════════════════════════════════════════════════
+     10. Ajustes pontuais por página
+     ════════════════════════════════════════════════════════════════════ */
+  /* Donut central com legenda abaixo */
+  .hoje-pie-wrap { justify-content: center; }
+
+  /* Gestor — hero empilhado (mockup: leitura acima; anel + saúde abaixo,
+     separados por hairline) e tiles executivos em 2 colunas */
+  .gst-h-t { font-size: 22px; }
+  .gst-h-st { font-size: 15px; }
+  .gst-hero { flex-direction: column; align-items: stretch; gap: 18px; padding: 20px 18px; }
+  .gst-hero-h { font-size: 22px; }
+  .gst-hero-sub { font-size: 13px; }
+  .gst-saude { padding-top: 16px; border-top: 1px solid var(--border); }
+  .gst-saude-item { white-space: normal; }
+  .gst-tiles { grid-template-columns: 1fr 1fr; gap: 11px; }
+  .gst-modal { padding: 14px; }
+
+  /* Cards filtráveis (férias/contratos/advertências): 2 por linha */
+  .fk-cards { grid-template-columns: 1fr 1fr !important; }
+  .fk-card { padding: 13px 14px; }
+  .fk-card-num { font-size: 26px; }
+
+  /* Controles: área com scroll interno precisa de folga p/ a bottom nav */
+  .controles-main { padding: 12px 10px calc(80px + env(safe-area-inset-bottom)); }
+  .cl-kpis { padding-left: 10px; padding-right: 10px; }
+
+  /* Admissão: página com scroll interno próprio (inline 100vh) */
+  #admissaoWrap { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .adm-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Workspace / BI Folha: barra de filtros deixa de ser sticky (ocupa
+     muito da tela pequena) e o grid ganha padding reduzido */
+  .ws-filterbar { position: static; padding: 10px 12px; }
+  .ws-grid-wrap { padding: 10px 8px 80px; }
+
+  /* Dashboards Gridstack (Início): widgets empilham em coluna única —
+     o posicionamento absoluto do grid não funciona em telas estreitas */
+  .grid-stack { height: auto !important; }
+  .grid-stack > .grid-stack-item {
+    position: static !important;
+    transform: none !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 230px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .grid-stack > .grid-stack-item > .grid-stack-item-content {
+    position: relative !important;
+    inset: auto !important;
+    height: 100%;
+    min-height: 230px;
+  }
+  .grid-stack .ui-resizable-handle { display: none !important; }
+}

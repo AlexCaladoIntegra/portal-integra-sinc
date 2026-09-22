@@ -1,0 +1,193 @@
+/* ============================================================================
+   importacao.css — view "Importar dados" do painel do administrador.
+   Complementa admin.css (que é porte verbatim); nada aqui redefine o que já
+   existe lá. Cores sempre por var(--token).
+   ============================================================================ */
+
+.import-card + .import-card { margin-top: 16px; }
+
+.import-card .page-header { margin-bottom: 10px; }
+.import-card .page-title { font-size: 16px; }
+
+.import-ultima {
+    padding: 10px 12px;
+    background: var(--panel-inset);
+    border-radius: var(--radius-chip);
+    margin-bottom: 14px;
+}
+
+/* ── Opções ── */
+.import-opcoes {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.import-opcao {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 10px;
+    align-items: center;
+    cursor: pointer;
+    font-size: 13.5px;
+    color: var(--text-body);
+}
+
+.import-opcao input { cursor: pointer; }
+/* A ajuda alinha com o rótulo, não com o checkbox. */
+.import-opcao small { grid-column: 2; font-size: 12px; }
+
+/* Opção de texto (lista de códigos): uma coluna, campo abaixo do rótulo. */
+.import-opcao--texto {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    max-width: 420px;
+    cursor: default;
+}
+
+.import-opcao--texto small { grid-column: 1; }
+
+.import-opcao--texto input {
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--app-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-btn);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    cursor: text;
+}
+
+.import-opcao--texto input:focus {
+    outline: none;
+    border-color: var(--active-border);
+}
+
+/* ── Ações ── */
+.import-acoes { display: flex; gap: 10px; flex-wrap: wrap; }
+.import-acoes button:disabled { opacity: 0.55; cursor: progress; }
+
+/* ── Resultado da execução ── */
+.import-resultado {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: var(--radius-chip);
+    border: 1px solid var(--border);
+    background: var(--panel-inset);
+    color: var(--text-body);
+    font-size: 13px;
+}
+
+.import-resultado--ok {
+    border-color: rgba(22, 199, 132, 0.35);
+    color: var(--regular);
+}
+
+.import-resultado--erro {
+    border-color: rgba(251, 77, 99, 0.35);
+    color: var(--crit);
+}
+
+/* ── Chip de situação do histórico ──
+   admin.css traz .ativo-chip com a variante .is-on; aqui entram as variantes
+   por severidade que o histórico usa. */
+.ativo-chip--regular {
+    background: rgba(22, 199, 132, 0.14);
+    border-color: rgba(22, 199, 132, 0.35);
+    color: var(--regular);
+}
+.ativo-chip--regular .ativo-chip-dot { background: var(--regular); }
+
+.ativo-chip--crit {
+    background: rgba(251, 77, 99, 0.14);
+    border-color: rgba(251, 77, 99, 0.35);
+    color: var(--crit);
+}
+.ativo-chip--crit .ativo-chip-dot { background: var(--crit); }
+
+.ativo-chip--media {
+    background: rgba(245, 183, 61, 0.14);
+    border-color: rgba(245, 183, 61, 0.35);
+    color: var(--media);
+}
+.ativo-chip--media .ativo-chip-dot { background: var(--media); }
+
+.ativo-chip--inativo { color: var(--inativo); }
+
+/* Coluna de resultado do histórico: mensagem de erro pode ser longa e não
+   deve esticar a tabela além da largura da tela. */
+#tbody-historico td:nth-child(5) {
+    max-width: 380px;
+    overflow-wrap: anywhere;
+}
+
+/* ── Estado local do importador ──
+   Responde "por que ele leu 917 e ignorou 917?" antes de a pessoa clicar. */
+.import-resumo {
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    border-radius: var(--radius-chip);
+    border: 1px solid var(--border);
+    background: var(--app-bg);
+    font-size: 13px;
+    color: var(--text-body);
+}
+
+.import-alerta {
+    margin: 6px 0 0;
+    color: var(--media);
+    font-size: 12.5px;
+}
+
+/* Resultado que não gravou nada: âmbar, não verde — e com o motivo. */
+.import-resultado--aviso {
+    border-color: rgba(245, 183, 61, 0.35);
+    color: var(--media);
+}
+
+.import-explicacao {
+    margin: 8px 0 0;
+    color: var(--text-body);
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+
+/* ── Seleção do que importar ──
+   A lista já vem sem o que está no portal, então marcar é a única decisão. */
+.import-selecao {
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-chip);
+    background: var(--panel-inset);
+}
+
+.import-selecao-cabecalho {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+/* Altura fixa com rolagem própria: 900 linhas não podem empurrar os botões
+   de ação para fora da tela. */
+.import-selecao-lista {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.import-cnpj {
+    margin-left: 8px;
+    color: var(--text-muted);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 11.5px;
+}
+
+.import-acoes .btn-primary:disabled,
+.import-acoes .btn-secondary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}

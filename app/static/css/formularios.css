@@ -1,0 +1,318 @@
+/* ============================================================================
+   formularios.css — campos e botões do portal.
+
+   Estas regras estavam em `admin.css`, que só a página `/admin` carrega. Com o
+   primeiro módulo de produto (BI Contábil) elas passaram a ser necessárias
+   fora do painel: uma tela que usa `.form-input` e `.btn-primary` sem carregar
+   `admin.css` renderiza o `<select>` e o `<button>` NATIVOS do navegador —
+   fundo branco, seta do sistema, nada do tema escuro.
+
+   Carregado pelo `base.html`, antes de qualquer CSS de tela, e é a **única**
+   definição destas classes. O que ficou em `admin.css` é só o que é do painel
+   (`.modal-body--form`, os overrides do modal de usuário).
+
+   Duas observações sobre o que veio do porte, mantidas como estão para a
+   aparência não mudar:
+
+   - a família é `'Outfit'`, e não `var(--font-sans)` (IBM Plex Sans) do resto
+     do portal;
+   - `.btn-primary` NÃO é o botão de destaque: é o discreto, translúcido. O de
+     confirmar ação é `.btn-primary.btn-primary--accent`, em ouro de marca — é
+     o que "Salvar" usa no modal de Editar usuário.
+
+   O tema claro do projeto não redefine os tokens, então cada regra tem o seu
+   par `body.light`.
+   ============================================================================ */
+
+/* ── Botões ─────────────────────────────────────────────────────────────── */
+
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 9px;
+    color: #c8c8c8;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.btn-primary .material-symbols-outlined { font-size: 18px; }
+.btn-primary:hover { background: rgba(255,255,255,0.12); color: #f4f4f4; }
+
+.btn-sm { padding: 7px 14px; font-size: 12px; }
+
+/* O par `[hidden]` dos dois botões, e é o de alcance mais largo do portal: o
+   `display: inline-flex` deles é regra de autor, e regra de autor vence a do
+   navegador — sem esta linha, `botao.hidden = true` não esconde nada.
+
+   Medido no Chrome em 06/09/2026: `.btn-secondary[hidden]` computava
+   `inline-flex` e 33px de altura. Cinco botões do portal dependiam disso e
+   estavam visíveis o tempo todo — "Restaurar padrão" nas três telas do BI
+   (fora do modo Organizar, onde clicá-lo apagava o layout salvo sem que a
+   pessoa tivesse entrado em modo de edição), "Mais usuários" em `/admin` e
+   "Carregar mais" no razão, os dois anunciando páginas que não existem.
+
+   Fica aqui, e não em cada tela, porque o componente é daqui. */
+.btn-primary[hidden],
+.btn-secondary[hidden] { display: none; }
+
+body.light .btn-primary       { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.14); color: #333333; }
+body.light .btn-primary:hover { background: rgba(0,0,0,0.09); color: #000000; }
+
+/* O botão de confirmar ação, em ouro de marca. É o de "Salvar" no modal de
+   Editar usuário, e o padrão para a ação principal de qualquer tela. */
+.btn-primary--accent { background: var(--active-bg); border-color: var(--active-border); color: var(--active-text); }
+.btn-primary--accent:hover { background: rgba(212,162,58,.22); color: #f0c874; }
+
+/* ── Botão secundário ── */
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 9px;
+    color: #a6a6a6;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    transition: background 0.2s, color 0.2s;
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.06); color: #f4f4f4; }
+
+body.light .btn-secondary { border-color: rgba(0,0,0,0.12); color: #666666; }
+body.light .btn-secondary:hover { background: rgba(0,0,0,0.05); color: #333333; }
+
+/* ── Estado desabilitado ────────────────────────────────────────────────────
+   O porte não trouxe nenhuma regra de `:disabled`, e por isso um botão
+   desabilitado era visualmente idêntico a um clicável em todo o portal: quem
+   clicava concluía que a tela estava travada. A view Parâmetros é a primeira
+   que usa `disabled` como affordance principal ("Salvar" nasce desligado e só
+   acende quando há alteração), então a regra vive aqui, com as classes de
+   botão, e vale para as telas todas. */
+.btn-primary:disabled,
+.btn-primary--accent:disabled,
+.btn-secondary:disabled,
+.btn-icon:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* `:hover` continuaria acendendo o botão desligado e sugerindo que ele
+   responde. Repete o estado em vez de reagir. */
+.btn-primary:disabled:hover { background: rgba(255, 255, 255, 0.07); }
+.btn-primary--accent:disabled:hover { background: var(--active-bg); color: var(--active-text); }
+.btn-secondary:disabled:hover { background: transparent; color: #a6a6a6; }
+.btn-icon:disabled:hover { background: transparent; color: #666666; }
+
+body.light .btn-primary:disabled:hover { background: rgba(0, 0, 0, 0.05); }
+body.light .btn-secondary:disabled:hover { background: transparent; color: #666666; }
+
+/* ── Botão ícone (editar na linha da tabela) ── */
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    color: #666666;
+    cursor: pointer;
+    padding: 4px;
+    transition: background 0.15s, color 0.15s;
+}
+.btn-icon:hover { background: rgba(255,255,255,0.08); color: #c8c8c8; }
+.btn-icon .material-symbols-outlined { font-size: 18px; }
+
+body.light .btn-icon:hover { background: rgba(0,0,0,0.06); color: #333333; }
+
+/* ── Campos ─────────────────────────────────────────────────────────────── */
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.form-group--row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.form-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #a6a6a6;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.form-input {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #f4f4f4;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    outline: none;
+    padding: 8px 12px;
+    transition: border-color 0.15s;
+    width: 100%;
+    box-sizing: border-box;
+}
+.form-input:focus { border-color: rgba(255,255,255,0.25); }
+
+/* Sem isto, a lista aberta de um `<select>` herda o branco do sistema e o
+   texto claro do campo fica ilegível sobre ele. */
+.form-input option { background: #1a1a1a; }
+
+.form-input.is-valid   { border-color: rgba(80,200,120,.5); }
+.form-input.is-invalid { border-color: rgba(224,85,85,.5); }
+
+.form-help {
+    font-family: 'Outfit', sans-serif; font-size: 11.5px; color: #8a8a8a; line-height: 1.4;
+}
+
+.form-error {
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    color: #e05555;
+    min-height: 16px;
+    margin-bottom: 8px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.req-star { color: var(--active-accent); font-weight: 700; }
+
+body.light .form-label { color: #666666; }
+body.light .form-input {
+    background: rgba(0,0,0,0.04);
+    border-color: rgba(0,0,0,0.12);
+    color: #212121;
+}
+body.light .form-input:focus { border-color: rgba(0,0,0,0.28); }
+body.light .form-input option { background: #ffffff; }
+body.light .form-help { color: #6b7280; }
+
+/* ── Select com busca (select_busca.js) ─────────────────────────────────── */
+
+/* O `<select>` original fica no DOM, escondido, e continua sendo quem tem o
+   `name` e o valor. O portal NÃO tem `[hidden] { display: none }` global —
+   então sem este par o select apareceria embaixo do campo de busca, com a
+   mesma lista, e a tela teria dois controles para a mesma coisa. */
+.select-busca-nativo[hidden] { display: none !important; }
+
+.select-busca { position: relative; }
+
+.select-busca-campo { width: 100%; }
+
+/* A lista flutua sobre o resto do filtro: dentro do fluxo, abrir a busca
+   empurraria os campos vizinhos para baixo a cada tecla. */
+.select-busca-lista {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 46vh;
+    overflow-y: auto;
+    /* Acompanha o campo, e CRESCE com o conteúdo quando precisa: no telefone o
+       filtro cai para 140px e o nome da empresa não cabe em lugar nenhum. A
+       lista flutua, então passar da largura do campo não empurra nada. */
+    min-width: 100%;
+    width: max-content;
+    max-width: min(92vw, 560px);
+    padding: 4px;
+    border: 1px solid var(--active-border);
+    border-radius: 8px;
+    background: var(--card);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+.select-busca-lista[hidden] { display: none !important; }
+
+body.light .select-busca-lista { box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12); }
+
+.select-busca-item {
+    padding: 5px 8px;
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 12.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+/* Dois destaques diferentes, e a distinção importa numa lista de 589: `is-atual`
+   é a empresa que está selecionada, e `is-marcado` é onde as setas estão. */
+.select-busca-item.is-atual { color: var(--active-text); font-weight: 600; }
+.select-busca-item.is-marcado { background: var(--active-bg); }
+
+.select-busca-vazio {
+    padding: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+/* ── A busca com seleção MÚLTIPLA (CFOP e Acumulador) ──────────────────────
+   A régua de chips fica ACIMA do campo e cresce para baixo: com ela embaixo, o
+   cursor de digitação se mexeria do lugar a cada código escolhido. */
+.select-busca-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.select-busca-chips[hidden] { display: none !important; }
+
+.select-busca-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    padding: 2px 4px 2px 7px;
+    border: 1px solid var(--active-border);
+    border-radius: 999px;
+    background: var(--active-bg);
+    color: var(--active-text);
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.select-busca-chip-tirar {
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.select-busca-chip-tirar:hover { background: rgba(0, 0, 0, .18); }

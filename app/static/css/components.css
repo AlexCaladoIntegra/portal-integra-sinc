@@ -1,0 +1,370 @@
+/* ============================================================================
+   components.css — Biblioteca de componentes do portal. Depende de tokens.css.
+   Carregar depois de tokens.css e style.css.
+   ============================================================================ */
+
+/* ── Shell de página (main centralizado) ─────────────────────────────────── */
+.page {
+    max-width: var(--main-max);
+    margin: 0 auto;
+    padding: var(--page-pad-y) var(--page-pad-x);
+}
+
+.page-header {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+.page-title {
+    font-size: 27px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--text);
+}
+.page-subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+.count-badge {
+    background: var(--active-bg);
+    color: var(--active-text);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: var(--radius-pill);
+    white-space: nowrap;
+}
+
+/* ── Micro-label (CAIXA ALTA) ────────────────────────────────────────────── */
+.micro-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--label);
+}
+
+/* ── Card genérico ───────────────────────────────────────────────────────── */
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+}
+.panel-inset {
+    background: var(--panel-inset);
+    border-radius: 10px;
+}
+
+/* ── KPI card (operacional — rail colorido à esquerda) ───────────────────── */
+.kpi-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.kpi-card {
+    flex: 1;
+    min-width: 160px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--kpi-color, var(--inativo));
+    border-radius: 13px;
+    padding: 16px 18px;
+}
+.kpi-card__label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--label);
+    font-weight: 600;
+}
+.kpi-card__num {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+.kpi-card__cap { font-size: 13px; color: var(--text-muted); }
+
+/* Variante executiva (Gestor): rail no topo, raio maior, número 46px */
+.kpi-card--exec {
+    border-left: 1px solid var(--border);
+    border-top: 3px solid var(--kpi-color, var(--inativo));
+    border-radius: var(--radius-card-exec);
+    padding: 22px 24px;
+}
+.kpi-card--exec .kpi-card__num { font-size: 46px; }
+
+/* Cores de KPI (aplicar em conjunto com --kpi-color via classe) */
+.kc-crit    { --kpi-color: var(--crit); }
+.kc-alta    { --kpi-color: var(--alta); }
+.kc-media   { --kpi-color: var(--media); }
+.kc-baixa   { --kpi-color: var(--baixa); }
+.kc-regular { --kpi-color: var(--regular); }
+.kc-especial{ --kpi-color: var(--especial); }
+.kc-financ  { --kpi-color: var(--financ); }
+.kc-teal    { --kpi-color: var(--teal); }
+.kc-inativo { --kpi-color: var(--inativo); }
+
+/* ── Chip de status / prioridade (fill SÓLIDO) ───────────────────────────── */
+.chip {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: var(--radius-chip);
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+/* outras cores usam texto branco; âmbar/verde/teal/cinza usam texto escuro */
+.chip--crit     { background: var(--crit);     color: var(--on-color-light); }
+.chip--alta     { background: var(--alta);     color: var(--on-color-light); }
+.chip--baixa    { background: var(--baixa);    color: var(--on-color-light); }
+.chip--especial { background: var(--especial); color: var(--on-color-light); }
+.chip--media    { background: var(--media);    color: var(--on-color-dark); }
+.chip--regular  { background: var(--regular);  color: var(--on-color-dark); }
+.chip--teal     { background: var(--teal);     color: var(--on-color-dark); }
+.chip--inativo  { background: var(--inativo);  color: var(--on-color-dark); }
+
+/* Variante translucida (para tabelas muito densas) — cor de texto, bg suave */
+.chip-soft { display:inline-block; padding:2px 9px; border-radius:var(--radius-chip); font-size:11px; font-weight:600; white-space:nowrap; }
+.chip-soft--crit     { background: rgba(251,77,99,0.15);   color: var(--crit); }
+.chip-soft--alta     { background: rgba(249,115,22,0.15);  color: var(--alta); }
+.chip-soft--media    { background: rgba(245,183,61,0.14);  color: var(--media); }
+.chip-soft--baixa    { background: rgba(77,141,246,0.15);  color: var(--baixa); }
+.chip-soft--regular  { background: rgba(22,199,132,0.14);  color: var(--regular); }
+.chip-soft--especial { background: rgba(168,85,247,0.16);  color: var(--especial); }
+.chip-soft--inativo  { background: rgba(107,114,128,0.16); color: var(--text-muted); }
+
+/* ── Botão de ação (OUTLINE — borda+texto coloridos, bg transparente) ────── */
+.btn-action {
+    padding: 4px 13px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    background: transparent;
+    border: 1px solid currentColor;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: background 0.15s;
+}
+.btn-action:hover { background: rgba(255, 255, 255, 0.05); }
+.btn-action--crit    { color: var(--crit); }
+.btn-action--regular { color: var(--regular); }
+.btn-action--baixa   { color: var(--baixa); }
+.btn-action--media   { color: var(--media); }
+.btn-action--gold    { color: var(--active-text); }
+
+/* ── Filter chip (ativo = pill ouro; idle = ghost com hairline) ──────────── */
+.filter-chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.filter-chip {
+    padding: 7px 15px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 500;
+    background: transparent;
+    color: #9aa0ab;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.filter-chip:hover { color: var(--text-body); border-color: rgba(255, 255, 255, 0.2); }
+.filter-chip.active {
+    background: var(--active-bg-soft);
+    color: var(--active-text);
+    border-color: var(--active-border);
+}
+
+/* ── Tabela densa ────────────────────────────────────────────────────────── */
+.data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.data-table thead th {
+    color: var(--label);
+    font-weight: 600;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-align: left;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--divider);
+}
+.data-table tbody td {
+    color: var(--text-dim);
+    padding: 8px 10px;
+    border-top: 1px solid var(--divider);
+}
+.data-table tbody tr:hover td { background: var(--panel-inset); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ── Meter horizontal ────────────────────────────────────────────────────── */
+.meter { height: 8px; background: var(--track); border-radius: 5px; overflow: hidden; }
+.meter__fill { height: 100%; border-radius: 5px; background: var(--baixa); }
+
+/* ════════════════════════════════════════════════════════════════════════
+   Marcador de placeholder
+   Uso:  <div class="card ph-mark"> … </div>
+         <span class="ph-tag">Placeholder</span>  (tag avulsa)
+         <span class="ph-tag ph-tag--soon">Em construção</span>
+   ════════════════════════════════════════════════════════════════════════ */
+
+.ph-mark {
+  position: relative;
+  border: 1px dashed var(--media) !important;
+  background-image: repeating-linear-gradient(
+    45deg, transparent, transparent 9px,
+    rgba(245,183,61,0.045) 9px, rgba(245,183,61,0.045) 18px) !important;
+}
+.ph-mark::after {
+  content: "PLACEHOLDER";
+  position: absolute; top: 8px; right: 10px; z-index: 2;
+  font-size: 8.5px; font-weight: 700; letter-spacing: .08em;
+  color: var(--media); background: rgba(245,183,61,0.12);
+  border: 1px solid rgba(245,183,61,0.35); border-radius: 5px;
+  padding: 1px 6px; pointer-events: none;
+}
+
+.ph-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--media); background: rgba(245,183,61,0.12);
+  border: 1px solid rgba(245,183,61,0.35); border-radius: 6px; padding: 2px 7px;
+  vertical-align: middle;
+}
+.ph-tag .material-symbols-outlined { font-size: 12px; }
+.ph-tag--soon { color: var(--inativo); background: rgba(107,114,128,0.14); border-color: rgba(107,114,128,0.3); }
+
+/* Bloco de placeholder "vazio" (texto explicativo dentro de um card já marcado) */
+.ph-body {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  color: var(--text-muted); font-size: 13px; line-height: 1.5;
+}
+
+body.light .ph-mark { background-image: repeating-linear-gradient(45deg, transparent, transparent 9px, rgba(180,130,20,0.06) 9px, rgba(180,130,20,0.06) 18px) !important; }
+body.light .ph-tag { color: #8a6420; background: rgba(195,154,75,0.14); border-color: rgba(195,154,75,0.35); }
+
+/* ===== Loader / Modal de carregamento — Integra Controladoria ===== */
+.app-loader-overlay {
+  position: fixed; inset: 0; z-index: 12000;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-sans, system-ui, -apple-system, "Segoe UI", sans-serif);
+  background: rgba(6, 7, 12, .62);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.app-loader-overlay[hidden] { display: none; }
+.app-loader-card {
+  position: relative; width: 380px; max-width: calc(100vw - 40px);
+  padding: 44px 44px 40px; border-radius: 22px;
+  background: linear-gradient(180deg, #16161a 0%, #0f0f12 100%);
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 40px 90px -20px rgba(0,0,0,.75), inset 0 0 0 1px rgba(255,255,255,.02);
+  overflow: hidden; animation: app-modalin .3s ease both;
+}
+.app-loader-card::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+}
+.app-loader-inner { display: flex; flex-direction: column; align-items: center; gap: 34px; }
+.app-loader-logo { animation: app-float 3s ease-in-out infinite; }
+.app-loader-logo svg { display: block; overflow: visible; }
+.app-loader-logo .navy { animation: app-breathe-navy 1.8s ease-in-out infinite; }
+.app-loader-logo .gold { animation: app-breathe-gold 1.8s ease-in-out infinite; }
+.app-loader-texts { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.app-loader-title { font-size: 18px; font-weight: 600; color: #f4f4f6; letter-spacing: -.01em; }
+.app-loader-subtitle { font-size: 13.5px; font-weight: 400; color: #8a8a93; line-height: 1.5; }
+.app-loader-progress-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.app-loader-track { position: relative; width: 100%; height: 4px; border-radius: 99px; background: rgba(255,255,255,.07); overflow: hidden; }
+.app-loader-bar {
+  position: absolute; top: 0; bottom: 0; width: 42%; border-radius: 99px;
+  background: linear-gradient(90deg, #2E5C8A, #C79A3E);
+  box-shadow: 0 0 12px rgba(199,154,62,.35);
+  animation: app-barslide 1.4s cubic-bezier(.65,.05,.36,1) infinite;
+}
+.app-loader-hint { font-size: 11px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: #5a5a63; }
+
+@keyframes app-breathe-navy { 0%,100% { opacity: .45 } 45% { opacity: 1 } }
+@keyframes app-breathe-gold { 0%,100% { opacity: 1 } 45% { opacity: .45 } }
+@keyframes app-float { 0%,100% { transform: translateY(0) scale(1) } 50% { transform: translateY(-5px) scale(1.03) } }
+@keyframes app-barslide { 0% { left: -42% } 100% { left: 100% } }
+@keyframes app-modalin { from { opacity: 0; transform: translateY(14px) scale(.97) } to { opacity: 1; transform: translateY(0) scale(1) } }
+@media (prefers-reduced-motion: reduce) {
+  .app-loader-logo, .app-loader-logo .navy, .app-loader-logo .gold, .app-loader-bar, .app-loader-card { animation: none }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Ícone do seletor de data (Chrome/Edge) — visível no tema escuro (padrão),
+   onde o glifo nativo é escuro e some sobre o fundo. No tema claro mantém o
+   glifo padrão. Cobre todos os <input type="date|datetime-local|month|time">.
+   ════════════════════════════════════════════════════════════════════════ */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.7);
+  opacity: .7;
+  cursor: pointer;
+  transition: opacity .12s;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+input[type="month"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+body.light input[type="date"]::-webkit-calendar-picker-indicator,
+body.light input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+body.light input[type="month"]::-webkit-calendar-picker-indicator,
+body.light input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: .6;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TEMA CLARO
+   ──────────────────────────────────────────────────────────────────────────
+   O tema claro do portal NÃO redefine os tokens — sobrescreve regra por regra,
+   com cores literais. Este arquivo inteiro nasceu sem o par, e a falta só não
+   aparecia porque quase nada dele estava em uso: as duas telas que usam `.card`
+   (`/bi` e a de entrada) o mostravam PRETO sobre fundo claro, e o `.page-title`
+   só tinha par em `admin.css` — que `/bi` e `/bi/dre` não carregam, então o
+   título ficava quase branco sobre branco.
+
+   Achado na fase 10 do BIC-003, ao renderizar a tela de DRE no tema claro em
+   Chrome headless. A suíte não pegaria: ela lê HTML, não CSS.
+
+   A paleta é a mesma de `admin.css`, que é a referência do portal:
+
+       superfície  #ffffff        texto forte   #212121
+       inset       rgba(0,0,0,.035)  texto       #333333
+       borda       rgba(0,0,0,.09)   secundário  #666666
+       divisor     rgba(0,0,0,.07)   micro-label #6b7280
+   ══════════════════════════════════════════════════════════════════════════ */
+
+body.light .page-title    { color: #212121; }
+body.light .page-subtitle { color: #666666; }
+body.light .micro-label   { color: #6b7280; }
+body.light .count-badge   { background: rgba(0,0,0,.05); border-color: rgba(0,0,0,.1); color: #333333; }
+
+body.light .card        { background: #ffffff;        border-color: rgba(0,0,0,.09); }
+body.light .panel-inset { background: rgba(0,0,0,.035); }
+
+/* O rail colorido do KPI fica como está: ele sai das cores FUNCIONAIS dos
+   tokens, que valem nos dois temas — é a mesma decisão de `grafico.js`. */
+body.light .kpi-card          { background: #ffffff; border-color: rgba(0,0,0,.09); }
+body.light .kpi-card--exec    { border-left-color: rgba(0,0,0,.09); }
+body.light .kpi-card__label   { color: #6b7280; }
+body.light .kpi-card__num     { color: #212121; }
+body.light .kpi-card__cap     { color: #666666; }
+
+body.light .data-table thead th          { color: #6b7280; border-bottom-color: rgba(0,0,0,.09); }
+body.light .data-table tbody td          { color: #4b5563; border-top-color: rgba(0,0,0,.07); }
+body.light .data-table tbody tr:hover td { background: rgba(0,0,0,.03); }
+
+body.light .chip-soft--crit     { background: rgba(220,38,38,.10);  color: #b3261e; }
+body.light .chip-soft--alta     { background: rgba(234,88,12,.10);  color: #b45309; }
+body.light .chip-soft--media    { background: rgba(202,138,4,.12);  color: #92700a; }
+body.light .chip-soft--baixa    { background: rgba(37,99,235,.10);  color: #1d4ed8; }
+body.light .chip-soft--regular  { background: rgba(16,150,90,.10);  color: #157347; }
+body.light .chip-soft--especial { background: rgba(147,51,234,.10); color: #7e22ce; }
+body.light .chip-soft--inativo  { background: rgba(0,0,0,.05);      color: #666666; }
+
+body.light .btn-action  { color: #333333; border-color: rgba(0,0,0,.14); }
+body.light .btn-action:hover { background: rgba(0,0,0,.04); border-color: rgba(0,0,0,.24); }
+body.light .filter-chip { color: #333333; border-color: rgba(0,0,0,.14); }
+body.light .meter       { background: rgba(0,0,0,.07); }
