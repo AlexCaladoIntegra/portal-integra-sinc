@@ -70,6 +70,57 @@ from . import (
     fiscal_produto,
 )
 
+# ── Quem depende de quem ─────────────────────────────────────────────────────
+#
+# A ordem do REGISTRO garante que um conjunto rode depois de quem ele precisa.
+# Este mapa diz de QUEM — e a diferença aparece quando algo falha.
+#
+# O caso que o motivou: a empresa 514 não tem escrituração contábil no Domínio
+# (zero contas em `ctcontas`), então `contabil_lancamentos` recusa. Sem este
+# mapa, a rodada parava ali e os CINCO conjuntos fiscais nunca rodavam — apesar
+# de o fiscal não depender do contábil em nada. São **187 das 608 empresas
+# ativas** sem plano de contas na origem, medido em 22/09/2026: quase um terço
+# do parque ficava sem sincronização fiscal por causa de um ramo que não se
+# aplica a ele.
+#
+# Declarado aqui, e não como atributo em cada módulo, para não tocar nos dez
+# arquivos copiados do Portal. É conhecimento de ORQUESTRAÇÃO, e a orquestração
+# é deste projeto.
+DEPENDE_DE: dict[str, tuple[str, ...]] = {
+    "empresas": (),
+    "contabil_plano": ("empresas",),
+    "contabil_saldos": ("contabil_plano",),
+    "contabil_dfc": ("contabil_plano",),
+    "contabil_lancamentos": ("contabil_plano", "contabil_saldos"),
+    # Global: espécies e CFOP não têm dono, e não dependem de empresa nenhuma.
+    "fiscal_cadastros": (),
+    "fiscal_dimensoes": ("empresas",),
+    "fiscal_movimento": ("fiscal_dimensoes", "fiscal_cadastros"),
+    "fiscal_apuracao": ("fiscal_dimensoes",),
+    "fiscal_produto": ("fiscal_dimensoes",),
+}
+
+
+def depende_de(chave: str, quebrados: set[str]) -> str | None:
+    """A primeira dependência quebrada de `chave`, ou `None` se o caminho está livre.
+
+    Percorre a cadeia inteira, não só o vizinho: `fiscal_movimento` depende de
+    `fiscal_dimensoes`, que depende de `empresas` — se `empresas` falhou, o
+    movimento não deve rodar mesmo sem citá-la.
+    """
+    vistos: set[str] = set()
+    fila = list(DEPENDE_DE.get(chave, ()))
+    while fila:
+        atual = fila.pop(0)
+        if atual in quebrados:
+            return atual
+        if atual in vistos:
+            continue
+        vistos.add(atual)
+        fila.extend(DEPENDE_DE.get(atual, ()))
+    return None
+
+
 REGISTRO: dict[str, ModuleType] = {
     empresas.CHAVE: empresas,
     contabil_plano.CHAVE: contabil_plano,

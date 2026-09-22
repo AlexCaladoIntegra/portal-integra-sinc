@@ -19,7 +19,7 @@ import time
 from ..data.connection import trava_de_sessao
 from ..shared.errors import ErroApp, ErroConflito, ErroNaoEncontrado, ErroValidacao
 from . import assinatura
-from .importadores import REGISTRO
+from .importadores import REGISTRO, depende_de
 from .repositories import ImportacaoRepository, empresas_ativas
 
 logger = logging.getLogger(__name__)
@@ -247,15 +247,23 @@ def executar_tudo(
     É o que o botão "Sincronizar tudo" dispara, e o que o agendamento vai
     chamar depois da Etapa 5.
 
-    ## Por que parar, e não seguir com as demais
+    ## Uma falha para o RAMO dela, não a rodada inteira
 
-    A ordem do REGISTRO é de **dependência**. Seguir depois de uma falha
-    produziria o pior resultado possível deste domínio: `contabil_saldos`
-    rodando sobre um plano de contas que `contabil_plano` não conseguiu
-    atualizar grava saldo em conta que já não existe — e o descarte acontece
-    em silêncio, com o BI mostrando número plausível e menor. Um erro no meio
-    de uma cadeia de dependência não é "uma fase que falhou": é todo o resto
-    ficando suspeito.
+    Seguir cegamente depois de uma falha produziria o pior resultado possível
+    deste domínio: `contabil_saldos` rodando sobre um plano de contas que
+    `contabil_plano` não conseguiu atualizar grava saldo em conta que já não
+    existe — e o descarte acontece em silêncio, com o BI mostrando número
+    plausível e menor.
+
+    Mas isso vale **dentro da cadeia de dependência**, e o fiscal não depende
+    do contábil em nada. Até 22/09/2026 a rodada parava na primeira falha
+    qualquer, e o caso que expôs o erro foi a empresa 514: sem escrituração
+    contábil no Domínio, `contabil_lancamentos` recusa — e os cinco conjuntos
+    fiscais nunca rodavam. São **187 das 608 ativas** nessa situação.
+
+    Agora cada conjunto é pulado apenas se alguém de quem ele DEPENDE falhou,
+    segundo o mapa `DEPENDE_DE`. O pulado entra no placar com
+    `status='pulado'` e o motivo, para não se confundir com sucesso.
 
     ## `ids` recorta a rodada a algumas empresas
 
@@ -303,7 +311,21 @@ def executar_tudo(
         except Exception:
             logger.warning("Gancho de progresso falhou; a rodada segue.", exc_info=True)
 
+    quebrados: set[str] = set()
+
     for indice, (chave, modulo) in enumerate(REGISTRO.items(), 1):
+        culpado = depende_de(chave, quebrados)
+        if culpado is not None:
+            fase = {
+                "chave": chave,
+                "nome": modulo.NOME,
+                "status": "pulado",
+                "erro": f"Não rodou: depende de '{culpado}', que falhou.",
+            }
+            fases.append(fase)
+            avisar({"evento": "concluiu", "indice": indice, "de": quantas, **fase})
+            continue
+
         avisar(
             {
                 "evento": "iniciou",
@@ -318,15 +340,17 @@ def executar_tudo(
         except ErroApp as exc:
             fase = {"chave": chave, "nome": modulo.NOME, "status": "erro", "erro": exc.message}
             fases.append(fase)
+            quebrados.add(chave)
             avisar({"evento": "concluiu", "indice": indice, "de": quantas, **fase})
-            logger.warning("Rodada interrompida em '%s': %s", chave, exc)
-            return {"fases": fases, "total": total, "concluido": False}
+            logger.warning("'%s' falhou: %s", chave, exc)
+            continue
         except Exception as exc:
             fase = {"chave": chave, "nome": modulo.NOME, "status": "erro", "erro": str(exc)}
             fases.append(fase)
+            quebrados.add(chave)
             avisar({"evento": "concluiu", "indice": indice, "de": quantas, **fase})
-            logger.exception("Rodada interrompida em '%s'", chave)
-            return {"fases": fases, "total": total, "concluido": False}
+            logger.exception("'%s' falhou", chave)
+            continue
 
         fase = {"chave": chave, "nome": modulo.NOME, "status": "sucesso", **resultado}
         fases.append(fase)
@@ -334,4 +358,4 @@ def executar_tudo(
         for medida in total:
             total[medida] += resultado.get(medida, 0)
 
-    return {"fases": fases, "total": total, "concluido": True}
+    return {"fases": fases, "total": total, "concluido": not quebrados}

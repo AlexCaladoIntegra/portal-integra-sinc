@@ -457,8 +457,12 @@ def executar(incluir: bool = False, dry_run: bool = False, ids: list[int] | None
         raise ErroValidacao(
             "Estas empresas não têm saldo contábil importado: "
             f"{', '.join(str(i) for i in sem_saldo)}. "
-            "Rode antes os importadores 'Plano de contas contábil' e "
-            "'Saldos contábeis mensais'."
+            "Ou os importadores 'Plano de contas contábil' e 'Saldos contábeis "
+            "mensais' ainda não rodaram para elas, ou o Domínio não tem "
+            "escrituração contábil para elas — e nesse caso rodá-los de novo "
+            "não muda nada. Medido em 22/09/2026: 187 das 608 empresas ativas "
+            "não têm nenhuma conta na origem, e para essas o BI Contábil "
+            "simplesmente não se aplica."
         )
 
     teto = get_settings().sinc_teto_de_empresas

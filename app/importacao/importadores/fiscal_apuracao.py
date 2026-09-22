@@ -314,7 +314,11 @@ def executar(incluir: bool = False, dry_run: bool = False, ids: list[int] | None
         raise ErroValidacao(
             "Estas empresas não têm cadastro fiscal importado: "
             f"{', '.join(str(i) for i in sem_cadastro)}. "
-            "Rode antes o importador 'Cadastros fiscais da empresa'."
+            "Ou o importador 'Cadastros fiscais da empresa' ainda não rodou "
+            "para elas, ou o Domínio não tem movimento fiscal para elas — e "
+            "nesse caso rodá-lo de novo não muda nada, porque não há o que "
+            "trazer. Se ele ler zero linhas, o BI Fiscal não se aplica a "
+            "essa empresa."
         )
 
     teto = get_settings().sinc_teto_de_empresas

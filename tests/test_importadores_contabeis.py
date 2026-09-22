@@ -222,3 +222,33 @@ def test_empresas_com_saldo_nao_usa_EXISTS_correlacionado_na_selecao():
     consulta = corpo[corpo.index('"""', corpo.index('"""') + 3) :]
     assert "EXISTS (SELECT 1 FROM bi_lancamento" not in consulta
     assert "com_lancamento AS (SELECT DISTINCT id_empresa FROM bi_lancamento)" in consulta
+
+
+# ── As mensagens que mandavam o operador a lugar nenhum ──────────────────────
+
+
+@pytest.mark.parametrize(
+    ("modulo", "trecho"),
+    [
+        ("contabil_saldos", "não muda nada"),
+        ("contabil_dfc", "não muda nada"),
+        ("contabil_lancamentos", "não muda nada"),
+        ("fiscal_movimento", "não muda nada"),
+        ("fiscal_apuracao", "não muda nada"),
+        ("fiscal_produto", "não muda nada"),
+    ],
+)
+def test_a_recusa_admite_que_a_origem_pode_nao_ter_o_dado(modulo, trecho):
+    """A mensagem antiga mandava "rode antes o importador X" — e para 187 das
+    608 empresas ativas rodá-lo não traz nada, porque o Domínio não tem
+    escrituração contábil para elas. O operador entrava num laço: rodava,
+    lia zero, tentava de novo, mesma mensagem.
+
+    Foi o que aconteceu com a empresa 514 em 22/09/2026.
+    """
+    from importlib import import_module
+    from pathlib import Path
+
+    fonte = import_module(f"app.importacao.importadores.{modulo}")
+    codigo = Path(fonte.__file__).read_text(encoding="utf-8")
+    assert trecho in codigo

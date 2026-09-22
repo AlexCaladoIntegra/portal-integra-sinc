@@ -240,10 +240,10 @@ def test_tudo_respeita_a_ordem_do_registro(client, registro):
     assert ordem == ["empresas", "contabil_plano", "contabil_saldos"]
 
 
-def test_tudo_para_na_primeira_falha(client, registro):
-    """Seguir depois de uma falha produz o pior resultado deste domínio:
-    `contabil_saldos` sobre um plano que não atualizou grava saldo em conta que
-    já não existe, e o descarte acontece em silêncio."""
+def test_falha_bloqueia_quem_DEPENDE_dela(client, registro):
+    """`contabil_saldos` sobre um plano que não atualizou grava saldo em conta
+    que já não existe, e o descarte acontece em silêncio. Por isso o dependente
+    é pulado — e o placar diz que foi pulado, não que deu certo."""
     registro["empresas"] = importador("empresas")
     registro["contabil_plano"] = importador("contabil_plano", erro=ErroConflito("travado"))
     registro["contabil_saldos"] = importador("contabil_saldos")
@@ -251,10 +251,63 @@ def test_tudo_para_na_primeira_falha(client, registro):
     _, dados = rodar_tudo(client)
 
     assert dados["concluido"] is False
-    assert [f["chave"] for f in dados["fases"]] == ["empresas", "contabil_plano"]
-    assert dados["fases"][-1]["status"] == "erro"
-    # A que nem chegou a rodar não aparece, e não foi chamada.
+    estados = {f["chave"]: f["status"] for f in dados["fases"]}
+    assert estados == {
+        "empresas": "sucesso",
+        "contabil_plano": "erro",
+        "contabil_saldos": "pulado",
+    }
     assert registro["contabil_saldos"].executar.chamadas == []
+
+
+def test_falha_no_contabil_NAO_bloqueia_o_fiscal(client, registro):
+    """O caso da empresa 514, e o motivo de o mapa `DEPENDE_DE` existir.
+
+    Sem escrituração contábil no Domínio, `contabil_lancamentos` recusa. Até
+    22/09/2026 isso parava a rodada e os cinco conjuntos fiscais nunca rodavam
+    — apesar de o fiscal não depender do contábil em nada. São 187 das 608
+    empresas ativas nessa situação.
+    """
+    registro["empresas"] = importador("empresas")
+    registro["contabil_plano"] = importador("contabil_plano")
+    registro["contabil_lancamentos"] = importador(
+        "contabil_lancamentos", erro=ErroValidacao("sem saldo contábil")
+    )
+    registro["fiscal_dimensoes"] = importador("fiscal_dimensoes")
+    registro["fiscal_movimento"] = importador("fiscal_movimento")
+
+    _, dados = rodar_tudo(client)
+
+    estados = {f["chave"]: f["status"] for f in dados["fases"]}
+    assert estados["contabil_lancamentos"] == "erro"
+    assert estados["fiscal_dimensoes"] == "sucesso"
+    assert estados["fiscal_movimento"] == "sucesso"
+    # E a rodada continua marcada como NÃO concluída: algo falhou.
+    assert dados["concluido"] is False
+
+
+def test_falha_em_empresas_bloqueia_TUDO(client, registro):
+    """`empresas` é a raiz: sem ela, nem o fiscal tem em que se apoiar."""
+    registro["empresas"] = importador("empresas", erro=ErroValidacao("origem fora"))
+    registro["fiscal_dimensoes"] = importador("fiscal_dimensoes")
+    registro["fiscal_movimento"] = importador("fiscal_movimento")
+
+    _, dados = rodar_tudo(client)
+
+    estados = {f["chave"]: f["status"] for f in dados["fases"]}
+    assert estados == {
+        "empresas": "erro",
+        "fiscal_dimensoes": "pulado",
+        "fiscal_movimento": "pulado",
+    }
+
+
+def test_o_mapa_de_dependencia_cobre_todo_o_registro():
+    """Conjunto novo sem entrada no mapa não bloquearia os seus dependentes —
+    uma falha silenciosa de orquestração, que é a pior espécie."""
+    from app.importacao.importadores import DEPENDE_DE, REGISTRO
+
+    assert set(DEPENDE_DE) == set(REGISTRO)
 
 
 def test_tudo_nunca_inclui_registro_novo(client, registro):
@@ -355,7 +408,7 @@ def test_o_progresso_diz_quantas_fases_faltam(client, registro):
     assert [(e["indice"], e["de"]) for e in inicios] == [(1, 3), (2, 3), (3, 3)]
 
 
-def test_a_fase_que_falha_anuncia_o_erro_e_a_rodada_para(client, registro):
+def test_a_fase_que_falha_anuncia_o_erro(client, registro):
     registro["a"] = importador("a")
     registro["b"] = importador("b", erro=ErroConflito("travado"))
     registro["c"] = importador("c")
@@ -363,11 +416,16 @@ def test_a_fase_que_falha_anuncia_o_erro_e_a_rodada_para(client, registro):
     eventos, fim = rodar_tudo(client)
 
     concluidas = [e for e in eventos if e["evento"] == "concluiu"]
-    assert [(e["chave"], e["status"]) for e in concluidas] == [("a", "sucesso"), ("b", "erro")]
-    assert concluidas[-1]["erro"] == "travado"
+    assert [(e["chave"], e["status"]) for e in concluidas] == [
+        ("a", "sucesso"),
+        ("b", "erro"),
+        # `c` não depende de `b` — o mapa `DEPENDE_DE` não as liga —, então
+        # segue rodando. É o caso da empresa 514: o fiscal não para porque o
+        # contábil não se aplica.
+        ("c", "sucesso"),
+    ]
+    assert [e for e in concluidas if e["chave"] == "b"][0]["erro"] == "travado"
     assert fim["concluido"] is False
-    # A terceira nem foi anunciada: ela não chegou a rodar.
-    assert not any(e["chave"] == "c" for e in eventos)
 
 
 def test_gancho_de_progresso_que_explode_nao_derruba_a_rodada(client, registro, monkeypatch):

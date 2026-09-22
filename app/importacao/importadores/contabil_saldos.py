@@ -362,7 +362,11 @@ def executar(incluir: bool = False, dry_run: bool = False, ids: list[int] | None
         raise ErroValidacao(
             "Estas empresas não têm plano de contas importado: "
             f"{', '.join(str(i) for i in sem_plano)}. "
-            "Rode antes o importador 'Plano de contas contábil'."
+            "Ou o importador 'Plano de contas contábil' ainda não rodou para "
+            "elas, ou o Domínio não tem escrituração contábil para elas — e "
+            "nesse caso rodá-lo de novo não muda nada, porque não há o que "
+            "trazer. Confira em 'Plano de contas contábil': se ele ler zero "
+            "contas, o BI Contábil não se aplica a essa empresa."
         )
 
     resultado = {"lidas": 0, "incluidas": 0, "atualizadas": 0, "ignoradas": 0}

@@ -394,6 +394,25 @@ falhavam com `connection pool exhausted`, o diagnóstico caía junto e o botão
 ficava desabilitado sem nada para reativá-lo. Hoje são **20**, o mesmo do
 Portal. Não reduza.
 
+## Nem toda empresa tem os dois BIs
+
+Medido em 22/09/2026: **187 das 608 empresas ativas não têm nenhuma conta em
+`ctcontas`** no Domínio. Para elas o BI Contábil simplesmente não se aplica —
+não é falta de importação, é ausência de escrituração na origem. O caso típico
+é o grupo com contabilidade centralizada na matriz:
+
+```
+510  DOURAGLASS MTZ           contas 1.161   lançamentos 208.865
+512  DOURAGLASS FILIAL CG     contas     0   lançamentos   2.292
+513  DOURAGLASS FILIAL SP     contas     0   lançamentos      57
+514  DOURAGLASS FIL DDOS      contas     0   lançamentos       0
+515  DOURAGLASS FILIAL MG     contas     0   lançamentos       2
+```
+
+Uma rodada nessas empresas mostra `Lançamentos contábeis` em erro, e **isso é o
+esperado**. O que importa é que o ramo FISCAL roda normalmente: a 513 traz 405
+notas, 285 apurações e 478 linhas de produto.
+
 ## Pendências conhecidas
 
 Coisas que este projeto mede e não resolve, registradas para não se perderem.
