@@ -56,8 +56,12 @@ Duplicar é **impossível**, não improvável: mesmo com um defeito no importado
 o PostgreSQL recusa. Vira erro visível, nunca linha repetida.
 
 Somam-se a isso os três idiomas de gravação (`ON CONFLICT DO UPDATE`,
-substituição de partição, reconciliação) e a trava de sessão do PostgreSQL,
-com nome idêntico ao do Portal — as duas vias não rodam juntas.
+substituição de partição, reconciliação) e a trava de sessão do PostgreSQL, que
+impede a tela e a rodada agendada de se atropelarem.
+
+> Quando este documento foi escrito, a trava também excluía a via do Portal.
+> Ela não existe mais: em 23/09/2026 o `portal-integra` removeu os próprios
+> importadores, e este projeto passou a ser o único caminho de dados.
 
 ### 2.2 Contra releitura: não existe nada
 

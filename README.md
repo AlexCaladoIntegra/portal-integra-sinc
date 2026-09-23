@@ -18,7 +18,13 @@ na imagem Docker — é por isso que este processo é separado.
 └─────────────────────────────────────┘
 ```
 
-## O que ele não é
+## O que ele é, e o que não é
+
+**É a ÚNICA via de dados para o Portal.** Desde 23/09/2026 o `portal-integra`
+não lê mais o Domínio — a Fase 9 do SYNC-001 removeu de lá o conector ODBC, os
+dez importadores e as 23 consultas de origem. Se esta sincronização parar, o
+Portal para de receber dado, e não tem como perceber sozinho: a origem já não
+está ao alcance dele.
 
 **Não é dono de nenhuma tabela.** Grava nas tabelas que o Portal cria com
 Alembic. Não há migrations aqui, e não deve haver: acrescentar schema por este
@@ -317,8 +323,9 @@ Para as 303 sem nenhuma linha, provar a ausência custa a tabela inteira — 306
 varreduras de 1,7 milhão de linhas. A reescrita calcula o conjunto uma vez e
 junta por ele; o resultado é idêntico linha a linha.
 
-**A tela de importação do `portal-integra` tem exatamente a mesma espera**, e a
-correção é a mesma. Há guarda de regressão em `tests/test_importadores_contabeis.py`.
+Quando medi isso, a tela de importação do `portal-integra` tinha exatamente a
+mesma espera. Ela não existe mais: o Portal removeu os próprios importadores em
+23/09/2026. Há guarda de regressão em `tests/test_importadores_contabeis.py`.
 
 ### Sincronizar só o que mudou — SINC-006, Fase 0
 
