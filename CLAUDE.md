@@ -10,8 +10,10 @@ PostgreSQL do Portal Integra. Roda na máquina do cliente, onde o driver ODBC
 existe; o Portal, na VPS, não tem rota para o banco do cliente nem o driver na
 imagem.
 
-O plano completo, com as cinco etapas e as armadilhas de cada uma, está no
-arquivo de plano desta sprint. O `portal-integra` tem um plano próprio para o
+O plano completo, com as cinco etapas e as armadilhas de cada uma, está em
+`changes/SINC-000-plano-de-desenvolvimento.md`. Ele morava fora do repositório
+até 23/09/2026; revisão de decisão agora passa por PR, como qualquer código.
+O `portal-integra` tem um plano próprio para o
 mesmo problema — `changes/SYNC-001-plano-de-migracao-arquitetural.md` — que
 desenha a integração por **API HTTP com HMAC**. Não é o caminho escolhido
 (grava-se direto no PostgreSQL), mas o §16.9 de lá é a lista canônica das

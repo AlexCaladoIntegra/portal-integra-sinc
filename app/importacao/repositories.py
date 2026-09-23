@@ -1,12 +1,14 @@
 """Histórico de execuções (`importacao_execucao`).
 
-A tabela é do Portal e **compartilhada**: as linhas com `origem='painel'` vêm
-do /admin de lá, as com `origem='sinc'` vêm daqui. Este projeto não a cria nem
-a altera — ver "Sem Alembic" no CLAUDE.md.
+A tabela é do Portal, mas **esta tela é o único lugar que ainda a lê.** As
+linhas com `origem='painel'` vieram da importação do /admin de lá, que saiu do
+ar em 23/09/2026 com a Fase 9 do SYNC-001: são histórico congelado, e nenhuma
+nova aparece. As com `origem='sinc'` vêm daqui. Este projeto não cria nem
+altera a tabela — ver "Sem Alembic" no CLAUDE.md.
 
 O `LEFT JOIN usuario` ficou, ao contrário do que o plano previa. A tabela
 `usuario` está no mesmo banco, e as linhas do Portal têm autor: descartar o
-join perderia essa informação para metade do histórico que a tela mostra. As
+join perderia essa informação para as linhas antigas que a tela mostra. As
 linhas daqui têm `id_usuario` nulo — aqui não há login —, e `nome_usuario`
 volta `None`, que a tela traduz para "pelo sincronizador".
 """

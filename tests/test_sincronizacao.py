@@ -167,8 +167,8 @@ def test_opcoes_nao_existe_no_contrato(client, registro):
 
 
 def test_executar_grava_origem_sinc_e_sem_usuario(client, registro):
-    """É `origem` que distingue, no histórico compartilhado, esta execução das
-    disparadas no /admin do Portal. `id_usuario` vai nulo: aqui não há login."""
+    """É `origem` que distingue, no histórico, esta execução das que o /admin do
+    Portal gravou até 23/09/2026. `id_usuario` vai nulo: aqui não há login."""
     registro["empresas"] = importador("empresas")
     client.post("/api/v1/sincronizacao/empresas", json={})
     linha = services.ImportacaoRepository.linhas[-1]

@@ -31,8 +31,9 @@ Alembic. Não há migrations aqui, e não deve haver: acrescentar schema por est
 lado criaria uma segunda verdade ao lado da do Portal.
 
 O histórico de execuções usa a tabela `importacao_execucao`, que já existe,
-gravando `origem='sinc'`. As execuções aparecem no `/admin` do Portal ao lado
-das disparadas por lá.
+gravando `origem='sinc'`. **A tela daqui é o único lugar que a lê:** a
+importação do `/admin` do Portal saiu do ar em 23/09/2026, e o que ela gravou
+com `origem='painel'` ficou como histórico congelado, ao lado do nosso.
 
 ## Instalação
 
@@ -134,7 +135,7 @@ O resultado está em três lugares, e o primeiro basta:
 1. **Agendador de Tarefas**, coluna *Resultado*: `0` tudo certo, `1` falhou,
    `2` já havia execução em andamento (**não é falha**), `3` configuração.
 2. `logs\sincronizacao.log` — o andamento fase a fase e o placar.
-3. A tela, ou o `/admin` do Portal: o histórico traz as dez fases com
+3. A tela daqui — e só ela: o histórico traz as dez fases com
    `origem = sinc`.
 
 > **Empresa nova no Domínio NÃO entra sozinha.** A rodada agendada roda com

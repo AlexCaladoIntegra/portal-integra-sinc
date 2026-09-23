@@ -186,9 +186,11 @@ def pendentes(chave: str):
 def historico():
     """Histórico paginado, incluindo simulações e execuções com erro.
 
-    Traz as linhas das DUAS origens: as do /admin do Portal e as daqui. É
-    proposital — quem investiga uma divergência precisa ver a sequência
-    inteira, não a metade que este processo escreveu.
+    Traz as linhas das DUAS origens: as que o /admin do Portal gravou até
+    23/09/2026 e as daqui. É proposital — quem investiga uma divergência
+    precisa ver a sequência inteira, não só o que este processo escreveu.
+    Aquela via não grava mais, e **esta tela passou a ser o único lugar que
+    mostra o que ela deixou.**
     """
     pag = Paginacao.de_request()
     itens, total = services.historico(request.args.get("chave"), limit=pag.limit, offset=pag.offset)

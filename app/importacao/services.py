@@ -27,8 +27,9 @@ logger = logging.getLogger(__name__)
 ORIGEM_PAINEL = "painel"
 ORIGEM_CLI = "cli"
 # A origem deste projeto. A coluna `origem` é VARCHAR(20) sem CHECK — só
-# `status` tem —, então o valor novo não exige migration. É o que faz as
-# execuções daqui aparecerem no /admin do Portal distinguidas das de lá.
+# `status` tem —, então o valor novo não exige migration. Distingue estas
+# execuções das que o /admin do Portal gravou até 23/09/2026. De lá não vem
+# mais nenhuma, e a distinção segue valendo porque o histórico dela ficou.
 ORIGEM_SINC = "sinc"
 
 # Acima disto, uma execução disparada PELA TELA segura a requisição HTTP tempo
