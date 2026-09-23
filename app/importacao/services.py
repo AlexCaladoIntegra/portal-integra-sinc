@@ -27,8 +27,9 @@ logger = logging.getLogger(__name__)
 ORIGEM_PAINEL = "painel"
 ORIGEM_CLI = "cli"
 # A origem deste projeto. A coluna `origem` é VARCHAR(20) sem CHECK — só
-# `status` tem —, então o valor novo não exige migration. É o que faz as
-# execuções daqui aparecerem no /admin do Portal distinguidas das de lá.
+# `status` tem —, então o valor novo não exige migration. Distingue estas
+# execuções das que o /admin do Portal gravou até 23/09/2026. De lá não vem
+# mais nenhuma, e a distinção segue valendo porque o histórico dela ficou.
 ORIGEM_SINC = "sinc"
 
 # Acima disto, uma execução disparada PELA TELA segura a requisição HTTP tempo
@@ -115,10 +116,16 @@ def executar(
     if ids is not None and not all(isinstance(i, int) and not isinstance(i, bool) for i in ids):
         raise ErroValidacao("A lista de ids deve conter apenas números inteiros.")
 
-    # Uma execução por importador. A trava é do PostgreSQL, não do processo —
-    # e o NOME é idêntico ao do Portal de propósito: como os dois apontam para o
-    # mesmo banco, uma importação disparada no /admin do Portal e uma
-    # sincronização daqui não rodam juntas. Isso é desejado, não acidente.
+    # Uma execução por importador. A trava é do PostgreSQL, não do processo, e
+    # é o que impede a tela e a rodada agendada de se atropelarem — o caso real
+    # é alguém sincronizar às 02:00 sem saber que o Agendador acabou de
+    # disparar.
+    #
+    # O NOME continua idêntico ao do Portal, mas o motivo mudou: até 23/09/2026
+    # ele existia para excluir mutuamente as DUAS vias, porque o /admin de lá
+    # também importava. O Portal removeu os próprios importadores (Fase 9 do
+    # SYNC-001) e hoje ninguém mais disputa esta trava do outro lado. Mantido
+    # porque custa nada e volta a valer se aquela via renascer.
     #
     # O cenário não é teórico: até o SEG-001 a importação de lançamentos era
     # morta aos 30 s, o administrador via o erro e clicava de novo — e a segunda

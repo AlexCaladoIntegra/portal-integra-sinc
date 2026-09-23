@@ -18,15 +18,22 @@ na imagem Docker — é por isso que este processo é separado.
 └─────────────────────────────────────┘
 ```
 
-## O que ele não é
+## O que ele é, e o que não é
+
+**É a ÚNICA via de dados para o Portal.** Desde 23/09/2026 o `portal-integra`
+não lê mais o Domínio — a Fase 9 do SYNC-001 removeu de lá o conector ODBC, os
+dez importadores e as 23 consultas de origem. Se esta sincronização parar, o
+Portal para de receber dado, e não tem como perceber sozinho: a origem já não
+está ao alcance dele.
 
 **Não é dono de nenhuma tabela.** Grava nas tabelas que o Portal cria com
 Alembic. Não há migrations aqui, e não deve haver: acrescentar schema por este
 lado criaria uma segunda verdade ao lado da do Portal.
 
 O histórico de execuções usa a tabela `importacao_execucao`, que já existe,
-gravando `origem='sinc'`. As execuções aparecem no `/admin` do Portal ao lado
-das disparadas por lá.
+gravando `origem='sinc'`. **A tela daqui é o único lugar que a lê:** a
+importação do `/admin` do Portal saiu do ar em 23/09/2026, e o que ela gravou
+com `origem='painel'` ficou como histórico congelado, ao lado do nosso.
 
 ## Instalação
 
@@ -128,7 +135,7 @@ O resultado está em três lugares, e o primeiro basta:
 1. **Agendador de Tarefas**, coluna *Resultado*: `0` tudo certo, `1` falhou,
    `2` já havia execução em andamento (**não é falha**), `3` configuração.
 2. `logs\sincronizacao.log` — o andamento fase a fase e o placar.
-3. A tela, ou o `/admin` do Portal: o histórico traz as dez fases com
+3. A tela daqui — e só ela: o histórico traz as dez fases com
    `origem = sinc`.
 
 > **Empresa nova no Domínio NÃO entra sozinha.** A rodada agendada roda com
@@ -317,8 +324,9 @@ Para as 303 sem nenhuma linha, provar a ausência custa a tabela inteira — 306
 varreduras de 1,7 milhão de linhas. A reescrita calcula o conjunto uma vez e
 junta por ele; o resultado é idêntico linha a linha.
 
-**A tela de importação do `portal-integra` tem exatamente a mesma espera**, e a
-correção é a mesma. Há guarda de regressão em `tests/test_importadores_contabeis.py`.
+Quando medi isso, a tela de importação do `portal-integra` tinha exatamente a
+mesma espera. Ela não existe mais: o Portal removeu os próprios importadores em
+23/09/2026. Há guarda de regressão em `tests/test_importadores_contabeis.py`.
 
 ### Sincronizar só o que mudou — SINC-006, Fase 0
 

@@ -28,7 +28,9 @@ incompleto. Nunca inclui registro novo (`incluir=False`): trazer empresa para
 o Portal é decisão de quem opera, com a lista na frente.
 
 Cada conjunto é registrado em `importacao_execucao` com `origem='sinc'`, então
-o resultado da madrugada aparece na tela e no /admin do Portal de manhã.
+o resultado da madrugada aparece de manhã no histórico da tela — **que é o
+único lugar que o mostra.** A tela de importação do Portal saiu do ar em
+23/09/2026, e do lado de lá ninguém mais lê essa tabela.
 
 ## Códigos de saída
 

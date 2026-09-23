@@ -10,8 +10,10 @@ PostgreSQL do Portal Integra. Roda na máquina do cliente, onde o driver ODBC
 existe; o Portal, na VPS, não tem rota para o banco do cliente nem o driver na
 imagem.
 
-O plano completo, com as cinco etapas e as armadilhas de cada uma, está no
-arquivo de plano desta sprint. O `portal-integra` tem um plano próprio para o
+O plano completo, com as cinco etapas e as armadilhas de cada uma, está em
+`changes/SINC-000-plano-de-desenvolvimento.md`. Ele morava fora do repositório
+até 23/09/2026; revisão de decisão agora passa por PR, como qualquer código.
+O `portal-integra` tem um plano próprio para o
 mesmo problema — `changes/SYNC-001-plano-de-migracao-arquitetural.md` — que
 desenha a integração por **API HTTP com HMAC**. Não é o caminho escolhido
 (grava-se direto no PostgreSQL), mas o §16.9 de lá é a lista canônica das
@@ -89,10 +91,11 @@ Fluxo obrigatório: `routes → services → repositories`.
 - SQL grande em `app/data/queries/<dominio>/<nome>.sql`.
 - **Nenhum código escreve `created_at`/`updated_at`** — são DEFAULT mais trigger
   no Portal.
-- Exclusão mútua de operação longa é `trava_de_sessao()`. **Mantenha o nome
-  idêntico ao do Portal** (`f"importacao:{chave}"`): é o mesmo PostgreSQL, e é
-  isso que impede uma importação disparada no `/admin` do Portal de rodar junto
-  com uma sincronização daqui.
+- Exclusão mútua de operação longa é `trava_de_sessao()`. Ela impede a tela e a
+  rodada agendada de se atropelarem — o caso real é alguém sincronizar às 02:00
+  sem saber que o Agendador acabou de disparar. Mantenha o nome
+  `f"importacao:{chave}"`: até 23/09/2026 ele também excluía a via do Portal, e
+  volta a valer se aquela via renascer.
 
 ## Frontend
 
@@ -151,6 +154,12 @@ técnico nunca vai para a tela.
 dados reais, e reescrevê-la produz **número plausível e errado** — o defeito mais
 caro deste domínio, porque não gera erro, não gera log e se lê como um relatório
 normal.
+
+**"Cópia" virou "o original".** Em 23/09/2026 o `portal-integra` removeu os
+próprios importadores (Fase 9 do SYNC-001): não há mais um segundo lugar onde
+essa lógica viva, nem para onde portar correção de volta, nem contra o que
+conferir se uma reescrita foi fiel. A regra de não editar para "melhorar" ficou
+mais forte, não mais fraca.
 
 Antes de "limpar" qualquer coisa em `importacao/`, leia o cabeçalho do arquivo.
 Os três que mais custam:

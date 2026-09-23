@@ -122,8 +122,10 @@ def _empresas_com_saldo() -> list[dict]:
     A reescrita abaixo calcula o conjunto de empresas com lançamento **uma vez**
     e junta por ele. Medido: **0,19 s**, com resultado idêntico linha a linha.
 
-    Vale a pena portar de volta para o `portal-integra`: a tela de importação
-    de lá tem exatamente a mesma espera.
+    Não há mais para onde portar de volta: o `portal-integra` removeu os
+    próprios importadores em 23/09/2026 (Fase 9 do SYNC-001). Esta consulta
+    deixou de ser uma divergência em relação a um código vivo — é a única que
+    existe.
     """
     with get_connection() as conn, conn.cursor() as cur:
         cur.execute(
