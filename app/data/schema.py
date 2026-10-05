@@ -62,8 +62,32 @@ def conferir(aplicada: str | None) -> tuple[str, str]:
         "divergente",
         f"O banco está na revisão {aplicada} e este sincronizador foi escrito "
         f"para a {SCHEMA_REVISAO_ESPERADA}. Confira se alguma migration do "
-        "portal-integra alterou as tabelas sincronizadas antes de continuar.",
+        "portal-integra alterou as tabelas sincronizadas antes de continuar. "
+        "A 0039 é a que trouxe `documento_titular`: antes dela, a CND de um "
+        "sócio vira uma versão da CND da própria empresa.",
     )
+
+
+def tem_coluna_de_titular() -> bool:
+    """A `0039` chegou de fato?
+
+    Conferir a COLUNA e não só a revisão, porque as duas respondem perguntas
+    diferentes: a revisão diz o que o Alembic registrou, e a coluna diz o que o
+    banco tem. Elas divergem quando alguém aplica DDL à mão.
+
+    É esta checagem que decide se a parte de SÓCIO do importador
+    `cnd_documentos` pode rodar. Os dez importadores de BI não dependem dela.
+    """
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT COUNT(*) FROM information_schema.columns
+             WHERE table_schema = 'public'
+               AND table_name = 'doc_documento'
+               AND column_name IN ('documento_titular', 'nome_titular')
+            """
+        )
+        return cur.fetchone()[0] == 2
 
 
 def conferir_no_boot() -> None:

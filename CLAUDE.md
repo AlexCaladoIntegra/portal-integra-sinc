@@ -10,6 +10,12 @@ PostgreSQL do Portal Integra. Roda na máquina do cliente, onde o driver ODBC
 existe; o Portal, na VPS, não tem rota para o banco do cliente nem o driver na
 imagem.
 
+Desde 05/10/2026 ele tem uma **segunda origem**: o PostgreSQL do
+`fiscal-monitor-cpf`, de onde vêm as certidões negativas de débito. Ela serve a
+UM conjunto de dados, o `cnd_documentos`, e a SPEC dele é
+`changes/CND-001-espelho-de-cnd-do-fiscal-monitor.md` **no portal-integra** —
+mora lá porque a primeira fase foi uma migration de lá.
+
 O plano completo, com as cinco etapas e as armadilhas de cada uma, está em
 `changes/SINC-000-plano-de-desenvolvimento.md`. Ele morava fora do repositório
 até 23/09/2026; revisão de decisão agora passa por PR, como qualquer código.
@@ -51,6 +57,47 @@ A diferença não é cosmética e decide o comportamento:
 - `sincronizar-agendado.bat` **não pode ter `pause`**: pendurava a tarefa até
   o timeout. O `abrir-sinc.bat` tem, de propósito. Há teste para os dois.
 
+## As três pontas, e a que não bloqueia
+
+    Domínio              ODBC         ORIGEM, somente leitura   os dez de BI
+    fiscal-monitor-cpf   PostgreSQL   ORIGEM, somente leitura   só o cnd_documentos
+    Portal Integra       PostgreSQL   DESTINO, escrita          todos
+
+`app/importacao/dominio.py` e `app/importacao/fiscal.py` são as duas origens, e
+cada uma abre a própria conexão. **Nenhuma das duas usa o pool de
+`app/data/connection.py`**, que é do destino: um pool só, parametrizado,
+economizaria trinta linhas e tornaria possível gravar na origem por engano de
+argumento. A sessão contra o fiscal-monitor ainda é aberta em
+`default_transaction_read_only`.
+
+**A ponta fiscal não entra no `pronto` do diagnóstico.** Ela serve a um
+conjunto dos onze, e tratá-la como bloqueio faria uma instalação sem o
+fiscal-monitor ficar sem sincronizar BI nenhum. O que existe é um segundo
+veredito, `pronto_para_cnd`, e quem recusa com a mensagem certa é o próprio
+importador.
+
+## O décimo primeiro conjunto, e o que ele tem de diferente
+
+`cnd_documentos` é o único que não lê o Domínio como origem principal e o único
+que grava **documento com binário**, em `doc_documento`, `doc_documento_versao`,
+`doc_arquivo` e `doc_historico`.
+
+Três coisas que só ele precisa:
+
+1. **`app/documentos/escrita.py`**, cópia declarada de `ArquivoService.enviar()`
+   do Portal — ver a seção sobre código copiado;
+2. **a revisão `0039`**, que trouxe `doc_documento.documento_titular`. Sem a
+   coluna, a CND de um sócio vira uma VERSÃO da CND da própria empresa, e a
+   tela mostra uma certidão válida de outra pessoa. O importador confere a
+   coluna além da revisão;
+3. **o Domínio para o vínculo do sócio**, em `gequadrosocietario_socios`. Sem
+   ele a certidão da empresa continua entrando e só a do sócio fica de fora —
+   a degradação é por metade, e o placar diz quantas e por quê.
+
+Ele depende só de `empresas` no mapa `DEPENDE_DE`. Depender do contábil ou do
+fiscal faria uma falha lá levar a certidão junto, e são 187 das 608 empresas
+ativas sem escrituração contábil na origem.
+
 ## Anatomia de um módulo
 
 Igual à do Portal, e os nomes de camada são em **inglês** mesmo com o resto do
@@ -91,6 +138,8 @@ Fluxo obrigatório: `routes → services → repositories`.
 - SQL grande em `app/data/queries/<dominio>/<nome>.sql`.
 - **Nenhum código escreve `created_at`/`updated_at`** — são DEFAULT mais trigger
   no Portal.
+- O PDF vai para `doc_arquivo.conteudo` com `psycopg2.Binary`, **nunca `bytes`
+  cru**: sem o adaptador o driver trata os bytes como texto.
 - Exclusão mútua de operação longa é `trava_de_sessao()`. Ela impede a tela e a
   rodada agendada de se atropelarem — o caso real é alguém sincronizar às 02:00
   sem saber que o Agendador acabou de disparar. Mantenha o nome
@@ -161,6 +210,21 @@ essa lógica viva, nem para onde portar correção de volta, nem contra o que
 conferir se uma reescrita foi fiel. A regra de não editar para "melhorar" ficou
 mais forte, não mais fraca.
 
+### A cópia que vive fora de `importacao/`
+
+`app/documentos/escrita.py` é cópia de `ArquivoService.enviar()` do
+`portal-integra`, e o `services_obtencao.py` de lá diz por que isso é perigoso:
+*"um segundo caminho de gravação divergiria dele na primeira correção feita de
+um lado — e o lado que ninguém olha é justamente o do robô"*.
+
+Este arquivo **é** esse segundo caminho. Três guardas o sustentam:
+
+1. o cabeçalho de cada função nomeia o arquivo do Portal de onde ela veio;
+2. `SCHEMA_REVISAO_ESPERADA` amarra o processo à revisão `0039`;
+3. `escrita.conferir_colunas()` compara o que a cópia grava com o que o
+   `information_schema` do destino exige — coluna `NOT NULL` sem default que
+   ela não preencha deixa a suíte vermelha antes de deixar a rodada vermelha.
+
 Antes de "limpar" qualquer coisa em `importacao/`, leia o cabeçalho do arquivo.
 Os três que mais custam:
 
@@ -186,6 +250,7 @@ descarta o valor — e nenhum dos dez importadores o usa.
 
 - Regra de negócio em `routes.py`; acesso a banco em template.
 - Superusuário do banco na aplicação.
+- **Escrever em qualquer uma das duas origens.**
 - Segredo em código, log ou resposta.
 - Criar migration aqui.
 - Tornar `SERVIDOR_HOST` configurável.

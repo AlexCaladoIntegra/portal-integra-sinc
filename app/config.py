@@ -51,7 +51,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # migration aditiva que não afeta nada do que o sincronizador escreve, e
 # derrubar a operação do cliente por isso seria pior que o risco. Quem lê o
 # aviso decide.
-SCHEMA_REVISAO_ESPERADA = "0021_empresa_situacao_origem"
+#
+# A `0039` é a primeira revisão que este processo EXIGE, e não só espera. Ela
+# acrescentou `doc_documento.documento_titular`, e sem a coluna a CND de um
+# sócio vira uma VERSÃO da CND da própria empresa — a tela mostra uma certidão
+# válida, de outra pessoa, sem erro e sem log. O importador `cnd_documentos`
+# confere a coluna além da revisão; os dez importadores de BI não dependem dela.
+#
+# Até 05/10/2026 a constante dizia `0021_empresa_situacao_origem`, e o banco
+# estava em `0038`. A divergência foi conferida naquela data e era benigna: as
+# dezessete revisões no meio criaram o módulo Documentos e não tocaram em
+# nenhuma das dezoito tabelas sincronizadas.
+SCHEMA_REVISAO_ESPERADA = "0039_doc_titular_pessoa_fisica"
 
 
 class Settings(BaseSettings):
@@ -109,6 +120,16 @@ class Settings(BaseSettings):
     db_connect_timeout: int = 10
     db_statement_timeout_ms: int = 300_000
 
+    # TLS até o destino. `prefer` é o default do libpq e **não verifica
+    # certificado**: ele negocia TLS se o servidor oferecer e cai para texto
+    # claro se não. Enquanto o banco estiver na mesma máquina isso é inócuo.
+    #
+    # Quando ele for para a VPS, o caminho é `verify-full` com o certificado em
+    # `DB_SSLROOTCERT` — e aí o que trafega inclui o PDF de uma certidão, que
+    # leva o documento do titular impresso.
+    db_sslmode: str = "prefer"
+    db_sslrootcert: str = ""
+
     # ── Domínio / SQL Anywhere (ORIGEM — somente leitura) ────────────────────
     # Informe DOMINIO_DSN (+ usuário/senha) ou DOMINIO_CONNSTR, para o caso de
     # uma string ODBC completa. Vazio desativa a leitura: a tela avisa e a
@@ -122,6 +143,27 @@ class Settings(BaseSettings):
     dominio_user: str = ""
     dominio_password: str = ""
     dominio_schema: str = "bethadba"
+
+    # ── ORIGEM 2: PostgreSQL do fiscal-monitor-cpf (somente leitura) ─────────
+    #
+    # A segunda origem, e ela só serve ao importador `cnd_documentos`: é de lá
+    # que vêm a certidão negativa de débitos e o PDF dela.
+    #
+    # Vazio DESLIGA aquele importador — ele recusa com a mensagem certa em vez
+    # de falhar sem explicar, e os outros dez seguem funcionando. A degradação
+    # é por conjunto, não da rodada inteira.
+    #
+    # A conta precisa de SELECT em `contribuintes`, `arquivos` e
+    # `arquivo_referencias`, e de nada mais: a sessão é aberta em
+    # `default_transaction_read_only`.
+    fiscal_host: str = ""
+    fiscal_port: int = 5432
+    fiscal_user: str = ""
+    fiscal_password: str = ""
+    fiscal_name: str = "sitfis_polling"
+    fiscal_connect_timeout: int = 10
+    fiscal_statement_timeout_ms: int = 120_000
+    fiscal_sslmode: str = "prefer"
 
     # ── Os dois tetos da sincronização contábil ──────────────────────────────
     #
@@ -169,6 +211,15 @@ class Settings(BaseSettings):
         if not v:
             raise ValueError(f"{info.field_name.upper()} não configurada — defina no .env")
         return v
+
+    @property
+    def fiscal_configurado(self) -> bool:
+        """Há como ler a origem das certidões?
+
+        A tela e o importador usam isto para explicar em vez de falhar — é o
+        mesmo papel que `dominio.configurado()` cumpre para a outra origem.
+        """
+        return bool(self.fiscal_host and self.fiscal_user)
 
     @property
     def database_url(self) -> str:
