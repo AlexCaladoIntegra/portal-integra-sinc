@@ -47,6 +47,12 @@ e gravar movimento fiscal antes das dimensões grava fato sem rótulo.
     4  contabil_dfc           5  contabil_lancamentos
     6  fiscal_cadastros       7  fiscal_dimensoes
     8  fiscal_movimento       9  fiscal_apuracao      10  fiscal_produto
+   11  cnd_documentos         o único que não lê o Domínio nem grava BI
+
+`cnd_documentos` vem por ÚLTIMO e é o único que lê outra origem — o
+PostgreSQL do `fiscal-monitor-cpf` — e grava DOCUMENTO com binário, no módulo
+Documentos do Portal. Por último porque é o mais independente: nada depende
+dele, e ele só precisa de `empresas`. Uma falha ali não arrasta ninguém.
 
 `fiscal_cadastros` é o único GLOBAL — espécies e CFOP não têm `codi_emp` na
 origem. Ele vem antes de `fiscal_dimensoes` porque o movimento desnormaliza o
@@ -58,6 +64,7 @@ from __future__ import annotations
 from types import ModuleType
 
 from . import (
+    cnd_documentos,
     contabil_dfc,
     contabil_lancamentos,
     contabil_plano,
@@ -98,6 +105,10 @@ DEPENDE_DE: dict[str, tuple[str, ...]] = {
     "fiscal_movimento": ("fiscal_dimensoes", "fiscal_cadastros"),
     "fiscal_apuracao": ("fiscal_dimensoes",),
     "fiscal_produto": ("fiscal_dimensoes",),
+    # A CND grava DOCUMENTO, e a FK dele é para `empresas` — nada de BI entra
+    # nessa conta. Depender de `empresas` e de mais nada é o que faz uma falha
+    # do contábil ou do fiscal não levar a certidão junto.
+    "cnd_documentos": ("empresas",),
 }
 
 
@@ -132,4 +143,5 @@ REGISTRO: dict[str, ModuleType] = {
     fiscal_movimento.CHAVE: fiscal_movimento,
     fiscal_apuracao.CHAVE: fiscal_apuracao,
     fiscal_produto.CHAVE: fiscal_produto,
+    cnd_documentos.CHAVE: cnd_documentos,
 }

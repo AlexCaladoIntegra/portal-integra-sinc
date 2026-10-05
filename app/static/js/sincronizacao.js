@@ -161,13 +161,14 @@
         ausente: "Não configurado", desconhecido: "Desconhecido"
     };
 
-    function linhaDiagnostico(titulo, estado) {
+    function linhaDiagnostico(titulo, estado, nota) {
         return '<div class="import-resumo">'
             + "<strong>" + texto(titulo) + ":</strong> "
             + '<span class="ativo-chip ativo-chip--' + (CHIP_DIAG[estado.situacao] || "inativo") + '">'
             +   '<span class="ativo-chip-dot"></span>' + texto(ROTULO_DIAG[estado.situacao] || estado.situacao)
             + "</span>"
             + '<p class="page-subtitle">' + texto(estado.mensagem) + "</p>"
+            + (nota ? '<p class="import-explicacao">' + texto(nota) + "</p>" : "")
             + "</div>";
     }
 
@@ -178,7 +179,19 @@
 
         return pedir(API + "/diagnostico").then(function (corpo) {
             var d = corpo.data;
+            /* A ressalva da ponta fiscal só aparece quando ela NÃO está ok.
+               Repeti-la no caminho feliz treinaria a pessoa a ignorá-la — e o
+               que ela diz é justamente que um chip vermelho ali não para a
+               sincronização, só o conjunto das certidões. */
+            var notaFiscal = d.fiscal && d.fiscal.situacao === "ok" ? "" :
+                "Isto não impede a sincronização: só o conjunto “Certidões "
+                + "negativas (CND)” fica de fora. Os outros dez não dependem "
+                + "desta ponta.";
+
             alvo.innerHTML = linhaDiagnostico("Origem · Domínio", d.origem)
+                + (d.fiscal
+                    ? linhaDiagnostico("Origem · fiscal-monitor (CND)", d.fiscal, notaFiscal)
+                    : "")
                 + linhaDiagnostico("Destino · PostgreSQL do Portal", d.destino)
                 + linhaDiagnostico("Schema do destino", d.schema);
 

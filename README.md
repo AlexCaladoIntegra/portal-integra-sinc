@@ -26,6 +26,11 @@ dez importadores e as 23 consultas de origem. Se esta sincronização parar, o
 Portal para de receber dado, e não tem como perceber sozinho: a origem já não
 está ao alcance dele.
 
+**Ele tem DUAS origens.** O Domínio, que alimenta os dez conjuntos de BI, e o
+PostgreSQL do `fiscal-monitor-cpf`, de onde vêm as certidões negativas de
+débito. A segunda serve a um conjunto só, o **Certidões negativas (CND)**, e
+sem ela os outros dez seguem funcionando.
+
 **Não é dono de nenhuma tabela.** Grava nas tabelas que o Portal cria com
 Alembic. Não há migrations aqui, e não deve haver: acrescentar schema por este
 lado criaria uma segunda verdade ao lado da do Portal.
@@ -162,9 +167,15 @@ curl http://127.0.0.1:7820/health
 
 | Linha | O que responde | Onde olhar quando falha |
 |---|---|---|
-| **Origem** | O Domínio respondeu? | driver ODBC, `DOMINIO_DSN` / `DOMINIO_CONNSTR` |
+| **Origem · Domínio** | O Domínio respondeu? | driver ODBC, `DOMINIO_DSN` / `DOMINIO_CONNSTR` |
+| **Origem · fiscal-monitor** | A origem das certidões respondeu? | `FISCAL_*`, rota de rede |
 | **Destino** | O PostgreSQL do Portal respondeu? | `DATABASE_*`, rota de rede |
 | **Schema** | É o banco que este código espera? | migrations novas no `portal-integra` |
+
+A linha do **fiscal-monitor não entra no veredito** que libera o botão. Ela
+serve a um conjunto dos onze, e tratá-la como bloqueio faria uma instalação sem
+o fiscal-monitor ficar sem sincronizar BI nenhum. A tela diz isso em palavras
+quando ela falha, porque um chip vermelho sozinho se lê como "nada funciona".
 
 `/health/live` é a sonda de vida e não abre conexão nenhuma.
 
@@ -239,8 +250,10 @@ app/
 │       └── fiscal/dominio/   as 16 do BI Fiscal
 ├── fiscal/          PUROS: o nome canônico do imposto e o rótulo do modelo
 ├── health/          /health e /health/live, e o diagnóstico das duas pontas
+├── documentos/      escrita.py: o caminho de gravação do Portal, COPIADO
 ├── importacao/
 │   ├── dominio.py      conexão ODBC read-only — cópia literal do Portal
+│   ├── fiscal.py       a SEGUNDA origem: o PostgreSQL do fiscal-monitor-cpf
 │   ├── services.py     executa, mede, registra; e a rodada completa
 │   ├── repositories.py histórico em `importacao_execucao` (tabela do Portal)
 │   ├── routes.py       /api/v1/sincronizacao
@@ -256,6 +269,41 @@ sincronizar-agendado.bat  a rodada completa, sem tela (Agendador de Tarefas)
 run.py                    entrypoint da tela
 sincronizar.py            entrypoint sem tela (CLI e daemon)
 ```
+
+## O conjunto de Certidões (CND)
+
+O décimo primeiro conjunto espelha as CNDs que o `fiscal-monitor-cpf` **já
+emitiu** e cria o documento correspondente no módulo Documentos do Portal, com
+o PDF para visualizar e baixar pelas rotas que já existem lá.
+
+**Ele não consulta o SERPRO.** Cada consulta é cobrada, e a decisão de gastar
+continua sendo do projeto de origem.
+
+A certidão de **empresa** casa pelo CNPJ. A de **sócio** casa pelo quadro
+societário do Domínio, e vai para **todas** as empresas em que a pessoa é sócia
+atual — medido em 05/10/2026, dos 33 CPFs com certidão arquivada 16 respondem
+por mais de uma empresa.
+
+### O que ele exige, e o que ele dispensa
+
+| | |
+|---|---|
+| `FISCAL_*` no `.env` | **exige.** Sem isso o conjunto recusa e os outros dez seguem |
+| Revisão `0039` do `portal-integra` | **exige.** Foi ela que trouxe `doc_documento.documento_titular` |
+| Domínio configurado | só para a metade do **sócio**. Sem ele a certidão da empresa entra do mesmo jeito |
+
+### O placar diz o que NÃO foi feito
+
+"ignoradas: 12" não diz o que fazer. O resultado leva cinco listas junto, e só
+quando têm conteúdo:
+
+| | |
+|---|---|
+| `sem_empresa` | documento que não achou empresa ativa |
+| `empresa_ambigua` | CNPJ repetido entre empresas ativas — há 33 deles |
+| `sem_vinculo` | CPF que não é sócio de ninguém no Domínio |
+| `sem_validade` | entrou sem data de validade, e fica fora do controle de vencimento |
+| `ja_arquivada` | o mesmo PDF já é versão daquele documento — o caso normal da rodada diária |
 
 ## Sobre o código copiado
 

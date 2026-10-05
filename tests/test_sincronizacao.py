@@ -98,7 +98,14 @@ def rodar_tudo(client, corpo=None):
 # ── Diagnóstico ──────────────────────────────────────────────────────────────
 
 
-def test_diagnostico_responde_as_tres_perguntas(client, monkeypatch):
+def test_diagnostico_responde_as_quatro_perguntas(client, monkeypatch):
+    """As quatro linhas, e os dois vereditos.
+
+    A ponta `fiscal` entrou com a CND-001 e serve a UM conjunto: ela é
+    reportada e **não** entra no `pronto`. As chaves são contrato — o JS da
+    tela lê cada uma pelo nome —, e por isso a asserção é de conteúdo e não de
+    tamanho: uma chave a menos quebraria a tela em silêncio.
+    """
     monkeypatch.setattr(
         health_services, "_checar_origem", lambda: {"situacao": "ok", "mensagem": "a"}
     )
@@ -106,11 +113,17 @@ def test_diagnostico_responde_as_tres_perguntas(client, monkeypatch):
         health_services, "_checar_destino", lambda: {"situacao": "ok", "mensagem": "b"}
     )
     monkeypatch.setattr(
-        health_services, "_checar_schema", lambda: {"situacao": "ok", "mensagem": "c"}
+        health_services, "_checar_fiscal", lambda: {"situacao": "ok", "mensagem": "c"}
+    )
+    monkeypatch.setattr(
+        health_services,
+        "_checar_schema",
+        lambda: {"situacao": "ok", "mensagem": "d", "tem_titular": True},
     )
     dados = client.get("/api/v1/sincronizacao/diagnostico").get_json()["data"]
-    assert set(dados) == {"origem", "destino", "schema", "pronto"}
+    assert {"origem", "fiscal", "destino", "schema", "pronto", "pronto_para_cnd"} <= set(dados)
     assert dados["pronto"] is True
+    assert dados["pronto_para_cnd"] is True
 
 
 def test_schema_divergente_nao_impede_sincronizar(client, monkeypatch):

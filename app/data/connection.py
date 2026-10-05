@@ -56,6 +56,26 @@ def _opcoes_de_sessao(s: Settings) -> dict[str, str]:
     return {"options": f"-c statement_timeout={s.db_statement_timeout_ms}"}
 
 
+def _tls(s: Settings) -> dict[str, str]:
+    """Os parâmetros de TLS do libpq, quando configurados.
+
+    `sslmode` vazio devolve dicionário vazio e o libpq usa o default dele
+    (`prefer`), que negocia TLS se o servidor oferecer e **cai para texto claro
+    se não** — sem verificar certificado em nenhum dos casos. É o que basta
+    enquanto o banco está na mesma máquina.
+
+    `verify-full` exige `sslrootcert`; passá-lo sem o certificado faz o
+    `connect` falhar com uma mensagem do libpq que não diz o que falta. Por
+    isso os dois viajam juntos ou nenhum viaja.
+    """
+    if not s.db_sslmode:
+        return {}
+    opcoes = {"sslmode": s.db_sslmode}
+    if s.db_sslrootcert:
+        opcoes["sslrootcert"] = s.db_sslrootcert
+    return opcoes
+
+
 def obter_pool() -> pool.ThreadedConnectionPool:
     """Pool do processo, criado sob demanda.
 
@@ -81,15 +101,17 @@ def obter_pool() -> pool.ThreadedConnectionPool:
                     dbname=s.database_name,
                     connect_timeout=s.db_connect_timeout,
                     **_opcoes_de_sessao(s),
+                    **_tls(s),
                 )
                 logger.info(
                     "Pool PostgreSQL iniciado (min=%s max=%s db=%s "
-                    "connect_timeout=%ss statement_timeout=%sms)",
+                    "connect_timeout=%ss statement_timeout=%sms sslmode=%s)",
                     s.db_pool_min,
                     s.db_pool_max,
                     s.database_name,
                     s.db_connect_timeout,
                     s.db_statement_timeout_ms or "sem teto",
+                    s.db_sslmode or "default do libpq",
                 )
     return _pool
 
