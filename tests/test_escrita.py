@@ -14,8 +14,9 @@ O que eles travam:
    constraints viram `ErroConflito` — e uma constraint DESCONHECIDA re-levanta;
 5. a lista de colunas escritas bate com o `INSERT` de cada tabela.
 
-A guarda que compara com o `information_schema` do destino precisa de banco e
-mora em `test_escrita_contra_o_destino.py`.
+A guarda que compara com o `information_schema` do destino precisa de banco, e
+por isso o que se trava aqui é que ela esteja LIGADA ao diagnóstico — a
+conferência em si roda contra o banco de verdade, no `/health`.
 """
 
 from __future__ import annotations
@@ -301,3 +302,39 @@ def test_a_certidao_e_congelada():
     c = certidao(data_validade=date(2027, 3, 28))
     with pytest.raises(FrozenInstanceError):
         c.data_validade = date(2020, 1, 1)
+
+
+# ── 7. A terceira guarda está LIGADA ─────────────────────────────────────────
+
+
+def test_a_guarda_de_colunas_esta_no_diagnostico():
+    """`conferir_colunas()` é a única das três guardas que pega uma migration
+    do Portal ANTES de a rodada quebrar.
+
+    Ela precisa de banco, então o que se trava aqui é que o `/health` a chame:
+    uma guarda que existe e ninguém executa é documentação, não defesa.
+    """
+    from app.health import services as saude
+
+    fonte = Path("app/health/services.py").read_text(encoding="utf-8")
+    assert "from ..documentos.escrita import conferir_colunas" in fonte
+    assert "conferir_colunas()" in fonte
+    assert saude.conferir_colunas is escrita.conferir_colunas
+
+
+def test_o_diagnostico_rebaixa_a_situacao_quando_a_coluna_diverge(monkeypatch):
+    """Mesmo com a revisão certa: a revisão diz o que o Alembic registrou, e a
+    coluna diz o que o banco tem. Quando as duas discordam, manda a coluna."""
+    from app.health import services as saude
+
+    monkeypatch.setattr(saude, "revisao_aplicada", lambda: "0039_doc_titular_pessoa_fisica")
+    monkeypatch.setattr(saude, "tem_coluna_de_titular", lambda: True)
+    monkeypatch.setattr(
+        saude, "conferir_colunas", lambda: ["doc_arquivo.conteudo: o espelho grava, e não existe"]
+    )
+
+    resultado = saude._checar_schema()
+
+    assert resultado["situacao"] == "divergente"
+    assert "doc_arquivo.conteudo" in resultado["mensagem"]
+    assert resultado["colunas"]

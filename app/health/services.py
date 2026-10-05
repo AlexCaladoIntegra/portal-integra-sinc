@@ -36,6 +36,7 @@ import logging
 from ..config import get_settings
 from ..data.connection import get_connection
 from ..data.schema import conferir, revisao_aplicada, tem_coluna_de_titular
+from ..documentos.escrita import conferir_colunas
 from ..importacao import dominio, fiscal
 
 logger = logging.getLogger(__name__)
@@ -150,8 +151,37 @@ def _checar_schema() -> dict:
             "não tem as colunas de titular. Alguém aplicou DDL à mão: a certidão "
             "de sócio não tem onde entrar.",
             "tem_titular": False,
+            "colunas": [],
         }
-    return {"situacao": situacao, "mensagem": mensagem, "tem_titular": tem_titular}
+
+    # A terceira guarda da cópia declarada de `app/documentos/escrita.py`: o
+    # que ela grava contra o que o destino exige. Ela pega uma migration do
+    # Portal ANTES de a rodada quebrar — uma coluna obrigatória nova faria todo
+    # INSERT de documento falhar no meio, e o aviso aqui chega com o nome dela.
+    #
+    # Divergência de coluna **rebaixa a situação**, mesmo com a revisão certa:
+    # a revisão diz o que o Alembic registrou, e a coluna diz o que o banco
+    # tem. Quando as duas discordam, quem manda é a coluna.
+    try:
+        problemas = conferir_colunas()
+    except Exception:
+        problemas = []
+
+    if problemas:
+        return {
+            "situacao": "divergente",
+            "mensagem": "O destino não bate com o que o conjunto de certidões grava: "
+            + "; ".join(problemas[:3])
+            + ("…" if len(problemas) > 3 else ""),
+            "tem_titular": tem_titular,
+            "colunas": problemas,
+        }
+    return {
+        "situacao": situacao,
+        "mensagem": mensagem,
+        "tem_titular": tem_titular,
+        "colunas": [],
+    }
 
 
 def diagnosticar() -> dict:
