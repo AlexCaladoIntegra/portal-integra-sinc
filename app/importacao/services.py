@@ -309,6 +309,7 @@ def executar_tudo(
     fases: list[dict] = []
     total = {"lidas": 0, "incluidas": 0, "atualizadas": 0, "ignoradas": 0}
     quantas = len(REGISTRO)
+    comeco = time.monotonic()
 
     def avisar(evento: dict) -> None:
         if progresso is None:
@@ -342,17 +343,37 @@ def executar_tudo(
                 "de": quantas,
             }
         )
+        # A fase que FALHA também consumiu tempo, e às vezes o tempo é a
+        # informação: um timeout de dois minutos e uma credencial recusada em
+        # meio segundo levam a lugares diferentes. O caminho de sucesso NÃO usa
+        # esta medida — `executar` já devolve a dele, que é a gravada no
+        # histórico, e ter duas respostas para a mesma pergunta é pior do que
+        # medir duas vezes.
+        comeco_da_fase = time.monotonic()
+
         try:
             resultado = executar(chave, incluir=False, dry_run=dry_run, origem=origem, ids=ids)
         except ErroApp as exc:
-            fase = {"chave": chave, "nome": modulo.NOME, "status": "erro", "erro": exc.message}
+            fase = {
+                "chave": chave,
+                "nome": modulo.NOME,
+                "status": "erro",
+                "erro": exc.message,
+                "duracao_segundos": round(time.monotonic() - comeco_da_fase, 2),
+            }
             fases.append(fase)
             quebrados.add(chave)
             avisar({"evento": "concluiu", "indice": indice, "de": quantas, **fase})
             logger.warning("'%s' falhou: %s", chave, exc)
             continue
         except Exception as exc:
-            fase = {"chave": chave, "nome": modulo.NOME, "status": "erro", "erro": str(exc)}
+            fase = {
+                "chave": chave,
+                "nome": modulo.NOME,
+                "status": "erro",
+                "erro": str(exc),
+                "duracao_segundos": round(time.monotonic() - comeco_da_fase, 2),
+            }
             fases.append(fase)
             quebrados.add(chave)
             avisar({"evento": "concluiu", "indice": indice, "de": quantas, **fase})
@@ -365,4 +386,14 @@ def executar_tudo(
         for medida in total:
             total[medida] += resultado.get(medida, 0)
 
-    return {"fases": fases, "total": total, "concluido": not quebrados}
+    # O total NÃO é a soma das fases, e a diferença é o que ele serve para
+    # mostrar: entre uma fase e a seguinte há a volta ao Domínio para o
+    # `resumo()` e a abertura de conexão. Somar as partes esconderia esse
+    # intervalo, e é justamente ele que explica uma rodada de 24 minutos cuja
+    # soma dos conjuntos dá 18.
+    return {
+        "fases": fases,
+        "total": total,
+        "concluido": not quebrados,
+        "duracao_segundos": round(time.monotonic() - comeco, 2),
+    }

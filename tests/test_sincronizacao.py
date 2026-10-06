@@ -492,3 +492,63 @@ def test_id_booleano_e_recusado_ANTES_de_comecar_a_transmitir(client, registro):
     resposta = client.post("/api/v1/sincronizacao/tudo", json={"ids": [True]})
     assert resposta.status_code == 422
     assert registro["a"].executar.chamadas == []
+
+
+# ── O tempo decorrido ────────────────────────────────────────────────────────
+#
+# A rodada completa levou 24 minutos MEDIDOS. Sem o número na tela, "está
+# demorando" e "travou" são a mesma coisa para quem olha — e a reação a cada
+# uma é oposta: esperar ou ir investigar.
+
+
+def test_a_rodada_completa_diz_quanto_levou(client, registro):
+    registro["a"] = importador("a")
+
+    _, dados = rodar_tudo(client)
+
+    assert "duracao_segundos" in dados, "o evento `fim` precisa carregar o total"
+    assert isinstance(dados["duracao_segundos"], int | float)
+    assert dados["duracao_segundos"] >= 0
+
+
+def test_a_fase_que_FALHA_tambem_diz_quanto_levou(client, registro):
+    """Metade do diagnóstico de uma falha é o tempo: credencial recusada volta
+    em meio segundo, origem que parou de responder volta no timeout."""
+    registro["a"] = importador("a", erro=ErroConflito("travado"))
+
+    eventos, dados = rodar_tudo(client)
+
+    fase = [f for f in dados["fases"] if f["chave"] == "a"][0]
+    assert fase["status"] == "erro"
+    assert "duracao_segundos" in fase, "a fase que falha some do relógio"
+
+    concluiu = [e for e in eventos if e["evento"] == "concluiu"][0]
+    assert "duracao_segundos" in concluiu, "o evento precisa levar o que a fase leva"
+
+
+def test_a_fase_PULADA_nao_finge_duracao(client, registro):
+    """Ausência, e não zero. A fase pulada não rodou, e `0 s` na tela diria que
+    ela foi instantânea — que é uma afirmação sobre trabalho que não houve."""
+    registro["empresas"] = importador("empresas")
+    registro["contabil_plano"] = importador("contabil_plano", erro=ErroConflito("travado"))
+    registro["contabil_saldos"] = importador("contabil_saldos")
+
+    _, dados = rodar_tudo(client)
+
+    pulada = [f for f in dados["fases"] if f["chave"] == "contabil_saldos"][0]
+    assert pulada["status"] == "pulado"
+    assert "duracao_segundos" not in pulada
+
+
+def test_o_total_da_rodada_nao_e_a_soma_das_fases(client, registro):
+    """Entre uma fase e a seguinte há a volta à origem para o `resumo()`. O
+    total mede a espera REAL de quem olha o relógio; a soma das partes mede
+    outra coisa, e a diferença é justamente o que explica uma rodada de 24
+    minutos cuja soma dá 18."""
+    for chave in ("a", "b", "c"):
+        registro[chave] = importador(chave)
+
+    _, dados = rodar_tudo(client)
+
+    soma = sum(f.get("duracao_segundos", 0) for f in dados["fases"])
+    assert dados["duracao_segundos"] >= soma

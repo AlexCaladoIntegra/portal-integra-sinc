@@ -190,3 +190,43 @@ def test_o_pool_comporta_o_recarregamento_da_tela():
 
     padrao = Settings(_env_file=None, database_user="x", database_password="x")
     assert padrao.db_pool_max >= 20
+
+
+# ── O cronômetro da espera ───────────────────────────────────────────────────
+
+
+def test_o_cronometro_PARA_quando_o_overlay_some(js_da_tela):
+    """O beco sem saída que este par pode criar.
+
+    O contador roda num `setInterval` que chama `appLoader.show()`. Se `pronto`
+    esconder o overlay sem matar o intervalo, o próximo tique o traz de volta —
+    e de novo, a cada segundo, para sempre. A tela fica modal e inutilizável, e
+    quem a usa não consegue nem relatar o defeito, porque não dá para clicar em
+    nada. Vale a mesma regra do `.finally(pronto)`.
+    """
+    corpo_do_pronto = js_da_tela[js_da_tela.index("function pronto()") :][:400]
+    assert "clearInterval" in corpo_do_pronto
+
+
+def test_o_cronometro_nao_abre_um_intervalo_por_chamada(js_da_tela):
+    """`aguardar` é chamado várias vezes na mesma rodada — uma por fase. Sem a
+    guarda, cada chamada abre outro `setInterval` e nenhum deles é o que
+    `pronto` desliga: sobram relógios pintando por cima uns dos outros."""
+    corpo_do_aguardar = js_da_tela[js_da_tela.index("function aguardar(") :][:500]
+    assert "if (!espera.timer)" in corpo_do_aguardar
+
+
+def test_duracao_nao_sai_em_segundo_cru(js_da_tela):
+    """`1423.5s` obriga quem lê a dividir por 60 para saber se espera ou vai
+    buscar café. Toda exibição de tempo passa pelo formatador."""
+    assert "function duracao(" in js_da_tela
+    assert 'd.duracao_segundos + "s"' not in js_da_tela
+
+
+def test_a_fase_pulada_nao_imprime_contagem(js_da_tela):
+    """`pulado` não tem contagem nenhuma. Tratá-lo junto do sucesso imprimia
+    "✓ … lidas undefined · incluídas undefined" — um certo verde sobre quatro
+    `undefined`, que AFIRMA que a fase correu bem."""
+    assert 'evento.status === "sucesso"' in js_da_tela, (
+        "o ramo da contagem precisa exigir sucesso, não apenas 'não é erro'"
+    )
