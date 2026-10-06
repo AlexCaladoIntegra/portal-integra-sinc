@@ -22,6 +22,20 @@ STATUS_EXECUTANDO = "executando"
 STATUS_SUCESSO = "sucesso"
 STATUS_ERRO = "erro"
 
+# Quanto a execução levou, calculado no SELECT e não no navegador.
+#
+# As duas pontas da subtração são `timestamptz`, e o PostgreSQL as resolve no
+# mesmo fuso. Mandar as duas datas e subtrair em JavaScript daria o mesmo
+# número quase sempre — e erraria no dia em que uma rodada atravessasse a
+# virada do horário de verão, que é exatamente a rodada das 02:00.
+#
+# `NULL` quando `concluida_em` é nulo, que é o caso da execução ainda em
+# andamento e o da órfã que o `expirar_orfas` ainda não varreu. A tela trata
+# o nulo como "—", nunca como zero: zero diria que foi instantânea.
+_DURACAO = (
+    "ROUND(EXTRACT(EPOCH FROM (e.concluida_em - e.iniciada_em))::numeric, 2) AS duracao_segundos"
+)
+
 
 class ImportacaoRepository:
     def registrar_inicio(
@@ -107,9 +121,9 @@ class ImportacaoRepository:
         """Última execução real (simulações não contam como importação)."""
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 SELECT e.id_importacao_execucao AS id, e.chave, e.status, e.origem,
-                       e.iniciada_em, e.concluida_em,
+                       e.iniciada_em, e.concluida_em, {_DURACAO},
                        e.lidas, e.incluidas, e.atualizadas, e.ignoradas, e.erro,
                        u.nome_usuario
                 FROM importacao_execucao e
@@ -123,9 +137,9 @@ class ImportacaoRepository:
             return linha_dict(cur)
 
     def historico(self, chave: str | None = None, limit: int = 20, offset: int = 0) -> list[dict]:
-        sql = """
+        sql = f"""
             SELECT e.id_importacao_execucao AS id, e.chave, e.status, e.origem, e.dry_run,
-                   e.iniciada_em, e.concluida_em,
+                   e.iniciada_em, e.concluida_em, {_DURACAO},
                    e.lidas, e.incluidas, e.atualizadas, e.ignoradas, e.erro,
                    u.nome_usuario
             FROM importacao_execucao e

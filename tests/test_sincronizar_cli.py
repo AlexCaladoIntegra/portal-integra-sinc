@@ -310,3 +310,94 @@ def test_o_daemon_NAO_e_derrubado_por_ponta_fora(monkeypatch, dominio_ok):
     monkeypatch.setattr(sincronizar, "servir", lambda _a: chamou.setdefault("sim", True) or 0)
     sincronizar.main(["--serve"])
     assert chamou.get("sim") is True
+
+
+# ── O relatório da rodada completa ───────────────────────────────────────────
+#
+# Às 02:00 não há ninguém na frente: o log é o relatório inteiro, e um defeito
+# nele só aparece na manhã seguinte, na noite em que mais se precisava dele.
+
+
+def _placar(fases, *, concluido, duracao=1.2):
+    return {
+        "fases": fases,
+        "total": {"lidas": 1, "incluidas": 0, "atualizadas": 1, "ignoradas": 0},
+        "concluido": concluido,
+        "duracao_segundos": duracao,
+    }
+
+
+FASE_OK = {
+    "chave": "empresas",
+    "nome": "Empresas",
+    "status": "sucesso",
+    "lidas": 1,
+    "incluidas": 0,
+    "atualizadas": 1,
+    "ignoradas": 0,
+    "duracao_segundos": 0.5,
+}
+FASE_ERRO = {
+    "chave": "contabil_plano",
+    "nome": "Plano",
+    "status": "erro",
+    "erro": "travado",
+    "duracao_segundos": 0.1,
+}
+FASE_PULADA = {
+    "chave": "contabil_saldos",
+    "nome": "Saldos",
+    "status": "pulado",
+    "erro": "Não rodou: depende de 'contabil_plano', que falhou.",
+}
+
+
+def test_a_fase_PULADA_nao_derruba_o_relatorio(caplog):
+    """O defeito de 06/10/2026, e por que ele custava caro.
+
+    A fase pulada não tem `lidas` nem `duracao_segundos`. Caindo no ramo do
+    sucesso, `_relatar` levantava `KeyError: 'lidas'` — engolido pelo
+    `except Exception` do `main`, que o transformava em "Falha não prevista" e
+    código 1. O relatório inteiro se perdia, e com ele a única pista de QUAL
+    conjunto falhou.
+    """
+    caplog.set_level("DEBUG")
+    codigo = sincronizar._relatar(
+        _placar([FASE_OK, FASE_ERRO, FASE_PULADA], concluido=False),
+        sincronizar.logging.getLogger("teste"),
+    )
+    assert codigo == sincronizar.FALHOU
+    assert "contabil_saldos" in caplog.text
+    assert "PULADO" in caplog.text
+
+
+def test_a_fase_pulada_NAO_finge_duracao_no_log(caplog):
+    """`0s` afirmaria que foi instantânea, e não que não aconteceu."""
+    caplog.set_level("DEBUG")
+    sincronizar._relatar(
+        _placar([FASE_PULADA], concluido=False), sincronizar.logging.getLogger("teste")
+    )
+    linha = [m for m in caplog.messages if "contabil_saldos" in m][0]
+    assert "0s" not in linha
+
+
+def test_a_rodada_concluida_diz_quanto_levou(caplog):
+    caplog.set_level("DEBUG")
+    codigo = sincronizar._relatar(
+        _placar([FASE_OK], concluido=True, duracao=1423.5),
+        sincronizar.logging.getLogger("teste"),
+    )
+    assert codigo == sincronizar.OK
+    assert "1423.5s" in caplog.text
+
+
+def test_a_rodada_INTERROMPIDA_tambem_diz_quanto_levou(caplog):
+    """Parar aos trinta segundos é configuração; aos vinte minutos é a origem
+    que caiu no meio. Sem o número, as duas se leem igual."""
+    caplog.set_level("DEBUG")
+    sincronizar._relatar(
+        _placar([FASE_OK, FASE_ERRO], concluido=False, duracao=1200.0),
+        sincronizar.logging.getLogger("teste"),
+    )
+    assert "1200.0s" in caplog.text
+    assert "INTERROMPIDA" in caplog.text

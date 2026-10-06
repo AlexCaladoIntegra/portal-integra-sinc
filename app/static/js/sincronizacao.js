@@ -50,12 +50,47 @@
        PostgreSQL recusa com 409.
 
        Guardado em `if (window.appLoader)`, como no PortalDP: a tela tem de
-       funcionar mesmo se o `base.html` mudar e o loader sumir. */
-    function aguardar(mensagem) {
+       funcionar mesmo se o `base.html` mudar e o loader sumir.
+
+       ── O cronômetro ────────────────────────────────────────────────────────
+       O overlay é MODAL: enquanto ele está no ar, os cards atrás não se veem.
+       Então é nele que o tempo decorrido corre, e não no card — um contador
+       escondido atrás de uma cortina não conta nada a ninguém.
+
+       Ele vive aqui, grudado no par mostrar/esconder, porque é a única forma
+       de não existir caminho que ligue o relógio e esqueça de desligá-lo:
+       quem chama `aguardar` ganha o contador de graça, e `pronto` o para. Os
+       quatro caminhos de execução e a carga inicial já passam por este par.
+
+       A carga inicial é o caso que mais pede: MEDIDOS 96 segundos, e até aqui
+       eles passavam sem nenhum sinal de que o tempo andava. */
+    var espera = { inicio: 0, timer: null, mensagem: "" };
+
+    function mostrar(mensagem) {
         if (window.appLoader) window.appLoader.show(mensagem);
     }
 
+    function pintarEspera() {
+        var corrido = espera.inicio ? (Date.now() - espera.inicio) / 1000 : 0;
+        mostrar(espera.mensagem + "  ·  decorrido " + duracao(corrido));
+    }
+
+    /* A troca de mensagem no meio da rodada — cada fase anuncia a sua — NÃO
+       zera o relógio: o que interessa a quem espera é há quanto tempo a
+       rodada inteira está correndo, não a fase da vez. */
+    function aguardar(mensagem) {
+        espera.mensagem = mensagem;
+        if (!espera.timer) {
+            espera.inicio = Date.now();
+            espera.timer = setInterval(pintarEspera, 1000);
+        }
+        pintarEspera();
+    }
+
     function pronto() {
+        if (espera.timer) clearInterval(espera.timer);
+        espera.timer = null;
+        espera.inicio = 0;
         if (window.appLoader) window.appLoader.hide();
     }
 
@@ -133,6 +168,26 @@
             + " · incluídas " + exec.incluidas
             + " · atualizadas " + exec.atualizadas
             + " · ignoradas " + exec.ignoradas;
+    }
+
+    /* Segundos → o que uma pessoa lê sem converter de cabeça.
+
+       A rodada completa levou 24 minutos MEDIDOS, e "1423.5s" obriga quem lê
+       a dividir por 60 para saber se deve esperar ou ir buscar café. A escala
+       muda com a grandeza: décimo de segundo só importa no que termina em
+       menos de dez, e minuto só importa abaixo de uma hora.
+
+       Vírgula decimal, e não ponto: o resto da tela está em português. */
+    function duracao(segundos) {
+        if (segundos === null || segundos === undefined || isNaN(segundos)) return "—";
+        var s = Number(segundos);
+        if (s < 10) return s.toFixed(1).replace(".", ",") + " s";
+        if (s < 60) return Math.round(s) + " s";
+        if (s < 3600) {
+            return Math.floor(s / 60) + " min " + String(Math.round(s % 60)).padStart(2, "0") + " s";
+        }
+        return Math.floor(s / 3600) + " h "
+            + String(Math.floor((s % 3600) / 60)).padStart(2, "0") + " min";
     }
 
     function cnpjFormatado(cnpj) {
@@ -356,6 +411,12 @@
                     ? "Última sincronização: " + dataHora(ultima.concluida_em || ultima.iniciada_em)
                       + " " + autorDe(ultima)
                       + " — " + contagens(ultima)
+                      // Quanto levou da última vez é a melhor estimativa do
+                      // que a próxima vai levar, e fica à vista de quem está
+                      // decidindo se aperta o botão agora.
+                      + (ultima.duracao_segundos != null
+                          ? " · em " + duracao(ultima.duracao_segundos)
+                          : "")
                     : "Nunca sincronizado.")
             + "</div>"
             + (item.tem_pendentes ? blocoSelecao() : "")
@@ -549,7 +610,7 @@
             resultado.className = "import-resultado import-resultado--"
                 + (gravou || corpo.dry_run ? "ok" : "aviso");
             resultado.textContent = (corpo.dry_run ? "Simulação: " : "Concluído: ")
-                + contagens(d) + " · " + d.duracao_segundos + "s"
+                + contagens(d) + " · em " + duracao(d.duracao_segundos)
                 + (corpo.dry_run ? " (nada foi gravado)" : "");
 
             if (!gravou && !corpo.dry_run) {
@@ -622,9 +683,24 @@
                 if (evento.evento === "concluiu") {
                     var linha = document.createElement("p");
                     linha.className = "import-explicacao";
-                    linha.textContent = (evento.status === "erro" ? "✕ " : "✓ ")
-                        + evento.nome + " — "
-                        + (evento.status === "erro" ? evento.erro : contagens(evento));
+                    /* Três estados, e não dois. O `pulado` — a fase que não
+                       rodou porque uma da qual ela depende falhou — não tem
+                       contagem nenhuma, e tratá-lo junto do sucesso imprimia
+                       "✓ … lidas undefined · incluídas undefined". Um certo
+                       verde sobre quatro `undefined` é pior que nenhuma
+                       linha: ele afirma que a fase correu bem.
+
+                       Duração só onde existe: o `pulado` não consumiu tempo,
+                       e "0 s" diria que foi instantâneo em vez de que não
+                       aconteceu. */
+                    var marca = { erro: "✕ ", pulado: "— " }[evento.status] || "✓ ";
+                    var corpoDaLinha = evento.status === "sucesso"
+                        ? contagens(evento)
+                        : evento.erro;
+                    linha.textContent = marca + evento.nome + " — " + corpoDaLinha
+                        + (evento.duracao_segundos != null
+                            ? " · " + duracao(evento.duracao_segundos)
+                            : "");
                     alvo.appendChild(linha);
                 }
             })
@@ -644,10 +720,15 @@
                     // apareceu — que é o que diz até onde a rodada chegou.
                     alvo.className = "import-resultado import-resultado--"
                         + (d.concluido ? "ok" : "erro");
-                    cabecalho.textContent = d.concluido
+                    /* O tempo entra nos DOIS desfechos. Numa rodada que
+                       falhou ele é metade do diagnóstico: interrompida aos
+                       trinta segundos é configuração, aos vinte minutos é a
+                       origem que parou de responder no meio. */
+                    cabecalho.textContent = (d.concluido
                         ? "Concluído: " + contagens(d.total)
                         : "Interrompido em '" + fases[fases.length - 1].nome
-                          + "'. Os conjuntos seguintes não rodaram.";
+                          + "'. Os conjuntos seguintes não rodaram.")
+                        + " · rodada de " + duracao(d.duracao_segundos);
 
                     return carregarLista();
                 })
@@ -676,7 +757,7 @@
         return pedir(API + "/historico?limit=20").then(function (corpo) {
             var itens = corpo.data || [];
             if (!itens.length) {
-                tbody.innerHTML = '<tr class="table-empty"><td colspan="6">'
+                tbody.innerHTML = '<tr class="table-empty"><td colspan="7">'
                     + "Nenhuma sincronização executada.</td></tr>";
                 return;
             }
@@ -687,11 +768,12 @@
                     + "<td>" + texto(e.origem) + "</td>"
                     + "<td>" + autorDe(e) + "</td>"
                     + "<td>" + (e.status === "erro" ? texto(e.erro) : contagens(e)) + "</td>"
+                    + "<td>" + texto(duracao(e.duracao_segundos)) + "</td>"
                     + "<td>" + chipSituacao(e.status) + "</td>"
                     + "</tr>";
             }).join("");
         }).catch(function (erro) {
-            tbody.innerHTML = '<tr class="table-empty"><td colspan="6">'
+            tbody.innerHTML = '<tr class="table-empty"><td colspan="7">'
                 + texto(erro.message) + "</td></tr>";
         });
     }

@@ -93,9 +93,24 @@ def _configurar_log(nivel: str) -> None:
 
 def _relatar(resultado: dict, log: logging.Logger) -> int:
     """Escreve o placar e devolve o código de saída."""
+    # São TRÊS estados, e não dois. A fase `pulado` — a que não rodou porque
+    # uma da qual ela depende falhou — não tem contagem nem duração, e cair no
+    # ramo do sucesso levantava `KeyError: 'lidas'`. O erro era engolido pelo
+    # `except Exception` lá de cima e virava "Falha não prevista" com código 1:
+    # a rodada noturna perdia o relatório inteiro, justamente na noite em que
+    # algo falhou e havia o que ler.
     for fase in resultado["fases"]:
         if fase["status"] == "erro":
-            log.error("  %-24s ERRO: %s", fase["chave"], fase["erro"])
+            log.error(
+                "  %-24s ERRO em %ss: %s",
+                fase["chave"],
+                fase.get("duracao_segundos", "?"),
+                fase["erro"],
+            )
+        elif fase["status"] == "pulado":
+            # Sem duração, de propósito: não houve trabalho a cronometrar, e
+            # `0s` afirmaria que foi instantâneo em vez de que não aconteceu.
+            log.warning("  %-24s PULADO: %s", fase["chave"], fase["erro"])
         else:
             log.info(
                 "  %-24s lidas %s · incluídas %s · atualizadas %s · ignoradas %s · %ss",
@@ -107,10 +122,18 @@ def _relatar(resultado: dict, log: logging.Logger) -> int:
                 fase["duracao_segundos"],
             )
 
+    # O tempo entra nos DOIS desfechos. Às 02:00 não há ninguém olhando o
+    # relógio, e no dia seguinte a pergunta é sempre a mesma: quanto levou?
+    # Numa rodada interrompida ele é metade do diagnóstico — parar aos trinta
+    # segundos é configuração, parar aos vinte minutos é a origem que caiu no
+    # meio. Em segundos crus, como as linhas de fase: aqui quem lê é operador
+    # com o log aberto, e a tela é que humaniza.
     total = resultado["total"]
+    levou = resultado.get("duracao_segundos", "?")
     if resultado["concluido"]:
         log.info(
-            "Rodada concluída: lidas %s · incluídas %s · atualizadas %s · ignoradas %s",
+            "Rodada concluída em %ss: lidas %s · incluídas %s · atualizadas %s · ignoradas %s",
+            levou,
             total["lidas"],
             total["incluidas"],
             total["atualizadas"],
@@ -119,7 +142,11 @@ def _relatar(resultado: dict, log: logging.Logger) -> int:
         return OK
 
     ultima = resultado["fases"][-1]["chave"] if resultado["fases"] else "—"
-    log.error("Rodada INTERROMPIDA em '%s'. Os conjuntos seguintes não rodaram.", ultima)
+    log.error(
+        "Rodada INTERROMPIDA em '%s' depois de %ss. Os conjuntos seguintes não rodaram.",
+        ultima,
+        levou,
+    )
     return FALHOU
 
 
